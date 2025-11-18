@@ -1,70 +1,75 @@
-# Getting Started with Create React App
+# Project: GameVerse (React Conversion)
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+This project is a React conversion of a static HTML/CSS website for Assignment 2. It rebuilds the "GameVerse" site as a dynamic, data-driven application using modern React principles.
 
-## Available Scripts
+---
 
-In the project directory, you can run:
+## 🛠️ Setup and Run Instructions
 
-### `npm start`
+1.  **Clone the repository:**
+    ```bash
+    git clone [your-repo-link]
+    ```
+2.  **Navigate to the project directory:**
+    ```bash
+    cd gameverse-react
+    ```
+3.  **Install dependencies:**
+    ```bash
+    npm install
+    ```
+4.  **Set up Firebase:**
+    * Create a project on [Firebase](https://firebase.google.com/).
+    * Create a new **Firestore Database**.
+    * Go to Project Settings and get your web app configuration.
+    * Copy your config object into `src/services/firebaseConfig.js`.
+5.  **Run the application:**
+    ```bash
+    npm run dev
+    ```
+---
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+## 🔌 API(s) Used
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+* [cite_start]**DummyJSON API** [cite: 23]
+    * **Endpoint:** `https://dummyjson.com/posts?limit=6`
+    * **Usage:** Used on the **/News** page to fetch mock blog posts and display them dynamically.
+    * **Endpoint:** `https://dummyjson.com/posts/search?q=[prompt]`
+    * **Usage:** Used by the **"Ask AI"** component on the Home page to simulate an AI API response.
 
-### `npm test`
+* [cite_start]**Firebase Firestore** [cite: 23]
+    * **Usage:** The form on the **/Contact** page sends user messages (name, email, message) to a `messages` collection in Firestore.
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+---
 
-### `npm run build`
+## 👥 Member Contributions
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+* **[Your Name]:** (Describe your contributions, e.g., "Set up React project, implemented routing, converted all static pages to components, integrated DummyJSON API for News page.")
+* **[Partner Name]:** (Describe partner's contributions, e.g., "Set up Firebase, wired the Contact form to Firestore, implemented Theme Toggle with Local Storage, styled new components.")
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+---
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+## 📸 Screenshots
 
-### `npm run eject`
+[cite_start]*(You are required to add full-screen screenshots of all your website pages here)* 
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+### Home Page
+![Home Page](...)
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+### Genres Page
+![Genres Page](...)
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+### Popular Page
+![Popular Page](...)
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+### News Page (with API data)
+![News Page](...)
 
-## Learn More
+### Events Page
+![Events Page](...)
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+### Gallery Page (with Video)
+![Gallery Page](...)
 
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+### Contact Page (with Firebase Form)
+![Contact Page](...)

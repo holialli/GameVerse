@@ -1,0 +1,13 @@
+.newsGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.newsItem {
+  flex: 1 1 calc(50% - 16px);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  box-shadow: var(--shadow);
+}
