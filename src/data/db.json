@@ -1,0 +1,90 @@
+{
+  "homeHighlights": [
+    {
+      "id": 1,
+      "title": "Genres, demystified",
+      "meta": "Learn what makes RPGs, FPS, Sports, and Puzzles unique.",
+      "link": "/genres",
+      "linkLabel": "Browse Genres",
+      "image": "/images/genres.webp"
+    },
+    {
+      "id": 2,
+      "title": "Popular picks",
+      "meta": "From GTA to Minecraft — see what the world plays.",
+      "link": "/popular",
+      "linkLabel": "See Popular",
+      "image": "/images/popular.png"
+    },
+    {
+      "id": 3,
+      "title": "News & updates",
+      "meta": "Console launches, eSports, releases — stay informed.",
+      "link": "/news",
+      "linkLabel": "Read News",
+      "image": "/images/news.jpg"
+    },
+    {
+      "id": 4,
+      "title": "Gallery",
+      "meta": "A responsive grid of iconic gaming moments.",
+      "link": "/gallery",
+      "linkLabel": "Open Gallery",
+      "image": "/images/tournament.webp"
+    }
+  ],
+  "genres": [
+    { "id": "g1", "title": "RPG", "meta": "Story-rich adventures with character progression.", "image": "/images/rpg.jpg" },
+    { "id": "g2", "title": "FPS", "meta": "Fast-paced action where aim, reflex, and strategy rule.", "image": "/images/fps.jpg" },
+    { "id": "g3", "title": "Sports", "meta": "Realistic simulations of football, basketball, racing.", "image": "/images/sports.webp" },
+    { "id": "g4", "title": "Puzzle", "meta": "Brain-teasing challenges that reward logic and creativity.", "image": "/images/puzzle.jpg" },
+    { "id": "g5", "title": "Open World", "meta": "Vast maps, emergent gameplay, and freedom.", "image": "/images/openworld.jpg" },
+    { "id": "g6", "title": "Strategy", "meta": "Plan, build, and outsmart foes with tactical mastery.", "image": "/images/strategy.jpg" },
+    { "id": "g7", "title": "Fighting", "meta": "Head-to-head combat with complex mechanics.", "image": "/images/fighting.webp" },
+    { "id": "g8", "title": "Racing", "meta": "High-speed competition on virtual tracks.", "image": "/images/racing.jpg" }
+  ],
+  "popularGames": [
+    { "id": "p1", "title": "Minecraft", "meta": "2011 • Build, survive, and craft your story.", "image": "/images/minecraft.jpg" },
+    { "id": "p2", "title": "GTA V", "meta": "2013 • Open-world chaos, cinematic heists.", "image": "/images/gtav.jpg" },
+    { "id": "p3", "title": "Fortnite", "meta": "2017 • Battle royale with style, building, and events.", "image": "/images/popular.png" },
+    { "id": "p4", "title": "Call of Duty", "meta": "2003– • Fast-paced FPS with blockbuster campaigns.", "image": "/images/fps.jpg" },
+    { "id": "p5", "title": "Zelda: BotW", "meta": "2017 • Open-world exploration refined to art.", "image": "/images/zelda.jpg" },
+    { "id": "p6", "title": "Rocket League", "meta": "2015 • Rocket-powered cars meet football.", "image": "/images/rocket.webp" },
+    { "id": "p7", "title": "Among Us", "meta": "2018 • Social deduction that took over the world.", "image": "/images/amongus.webp" },
+    { "id": "p8", "title": "Cyberpunk 2077", "meta": "2020 • Dystopian RPG with neon-soaked Night City.", "image": "/images/cyberpunk.webp" }
+  ],
+  "events": [
+    {
+      "id": "e1",
+      "day": "12",
+      "month": "Oct",
+      "title": "Valorant City LAN",
+      "meta": "Arena District • 2 PM",
+      "description": "Local teams face off in a best-of-five series. Spectator booths, merch stalls, and meet & greet with casters."
+    },
+    {
+      "id": "e2",
+      "day": "26",
+      "month": "Oct",
+      "title": "FIFA Championship Finals",
+      "meta": "East Hall • 5 PM",
+      "description": "Regional qualifiers culminate in a live final. Fan zone with skills contests and giveaway draws."
+    },
+    {
+      "id": "e3",
+      "day": "02",
+      "month": "Nov",
+      "title": "Indie Showcase & Cosplay Parade",
+      "meta": "Riverfront • 11 AM",
+      "description": "Playtest upcoming indie titles and join the cosplay parade. Prizes for best armor build and duo acts."
+    },
+    {
+      "id": "e4",
+      "day": "15",
+      "month": "Nov",
+      "title": "Retro Arcade Night",
+      "meta": "Old Town Arcade • 7 PM",
+      "description": "Speedrun ladder for classics, cabinet high-score challenges, and an 8-bit music set afterparty."
+    }
+  ]
+}

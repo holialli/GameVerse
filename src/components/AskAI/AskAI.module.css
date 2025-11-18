@@ -1,0 +1,60 @@
+.aiBox {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-top: 24px;
+  max-width: 600px;
+}
+.aiTitle {
+  font-weight: 800;
+  margin: 0 0 4px 0;
+  background: linear-gradient(90deg, var(--primary), var(--accent));
+  -webkit-text-fill-color: transparent;
+}
+.aiDesc {
+  color: var(--muted);
+  font-size: 0.9rem;
+  margin: 0 0 16px 0;
+}
+.aiForm {
+  display: flex;
+  gap: 8px;
+}
+.aiInput {
+  flex: 1;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  color: var(--text);
+  font-size: 1rem;
+}
+.aiInput:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(0, 229, 255, 0.3);
+}
+.aiButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 14px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(90deg, var(--primary), var(--accent));
+  color: #031116;
+  font-weight: 700;
+  cursor: pointer;
+}
+.aiButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.aiResponse {
+  margin-top: 16px;
+  padding: 12px;
+  background: var(--bg-elev);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}

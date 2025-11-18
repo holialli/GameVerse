@@ -1,0 +1,27 @@
+.eventsGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.eventCard {
+  flex: 1 1 calc(50% - 16px);
+  display: flex;
+  gap: 14px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  box-shadow: var(--shadow);
+}
+/* ... (rest of your events.css styles, prefixed with their class names) ... */
+.eventCard:hover { border-color: rgba(0,229,255,0.45); transform: translateY(-4px); box-shadow: 0 14px 34px rgba(0, 229, 255, 0.12), 0 10px 28px rgba(0,0,0,0.4); }
+/* .eventDate {  }
+.eventDay {  }
+.eventMonth {  }
+.eventTitle {  }
+.eventMeta {  } */
+
+@media (max-width: 900px) {
+  .eventCard { flex: 1 1 100%; }
+}
