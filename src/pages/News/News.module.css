@@ -11,3 +11,7 @@
   padding: 16px;
   box-shadow: var(--shadow);
 }
+
+.errorText {
+  color: var(--danger);
+}

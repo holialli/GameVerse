@@ -6,21 +6,49 @@ import Popular from './pages/Popular/Popular';
 import News from './pages/News/News';
 import Events from './pages/Events/Events';
 import Contact from './pages/Contact/Contact';
-import Gallery from './pages/Gallery/Gallery'; 
+import Gallery from './pages/Gallery/Gallery';
+import { AuthProvider } from './contexts/AuthContext';
+import ProtectedRoute from './components/ProtectedRoute/ProtectedRoute';
+import Login from './pages/Login/Login';
+import Register from './pages/Register/Register';
+import Dashboard from './pages/Dashboard/Dashboard';
+import Profile from './pages/Profile/Profile';
 
 function App() {
   return (
-    <Layout>
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/genres" element={<Genres />} />
-        <Route path="/popular" element={<Popular />} />
-        <Route path="/news" element={<News />} />
-        <Route path="/events" element={<Events />} />
-        <Route path="/contact" element={<Contact />} />
-        <Route path="/gallery" element={<Gallery />} />
-      </Routes>
-    </Layout>
+    <AuthProvider>
+      <Layout>
+        <Routes>
+          {/* Public routes */}
+          <Route path="/" element={<Home />} />
+          <Route path="/genres" element={<Genres />} />
+          <Route path="/popular" element={<Popular />} />
+          <Route path="/news" element={<News />} />
+          <Route path="/events" element={<Events />} />
+          <Route path="/contact" element={<Contact />} />
+          <Route path="/gallery" element={<Gallery />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          {/* Protected routes */}
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <Profile />
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
+      </Layout>
+    </AuthProvider>
   );
 }
 

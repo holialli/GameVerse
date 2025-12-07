@@ -20,6 +20,10 @@
 .aiForm {
   display: flex;
   gap: 8px;
+  align-items: center;
+  padding: 8px 0 0 0;
+  border-top: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(255,255,255,0.00), rgba(0,0,0,0.02));
 }
 .aiInput {
   flex: 1;
@@ -58,3 +62,93 @@
   border-radius: var(--radius-sm);
   border: 1px solid var(--border);
 }
+
+.aiProvider {
+  background: linear-gradient(90deg, rgba(255,255,255,0.06), rgba(0,0,0,0.02));
+  color: var(--muted);
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+}
+
+/* Fixed-position variant */
+.aiBoxFixed {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  width: 360px;
+  max-width: calc(100% - 40px);
+  border-radius: var(--radius);
+  padding: 6px;
+  z-index: 9999;
+}
+.aiInner {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+  box-shadow: 0 8px 24px rgba(2,12,27,0.35);
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 64px);
+}
+.aiHeader { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.aiHeader .aiTitle { margin: 0; }
+.aiHeader { border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+.aiList { margin:8px 0 0 16px; }
+.aiError { margin-top:10px; color: var(--danger); }
+.aiError { margin-top:10px; color: var(--danger); display:flex; gap:8px; align-items:center; }
+.aiRetry {
+  margin-left: 8px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: none;
+  background: linear-gradient(90deg, var(--primary), var(--accent));
+  color: #031116;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* Expanded/collapsed states */
+.aiBoxFixed.expanded {
+  width: 420px;
+  max-width: calc(100% - 40px);
+  display: block;
+  overflow: visible;
+}
+
+/* Scrollable output area placed above the input */
+.aiOutput {
+  flex: 1 1 auto;
+  overflow: auto;
+  padding: 12px;
+  /* keep inner output readable while outer box is transparent */
+  background: var(--bg-elev);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  margin: 8px 0;
+}
+
+.aiOutput ul { margin: 8px 0 0 18px; }
+.aiOutput li { margin-bottom: 8px; }
+.aiBoxFixed.collapsed {
+  width: 56px;
+  height: 56px;
+  padding: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.expanded { }
+.collapsed { }
+.aiToggleBtn {
+  background: linear-gradient(90deg, var(--primary), var(--accent));
+  border: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  color: #031116;
+  font-weight: 700;
+  cursor: pointer;
+}
+.aiBoxFixed a { color: var(--primary); }
