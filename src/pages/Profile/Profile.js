@@ -56,11 +56,21 @@ const Profile = () => {
       <h1>Profile</h1>
       {!editMode ? (
         <div className={styles.profileInfo}>
-          <div><strong>Name:</strong> {profile.name}</div>
-          <div><strong>Email:</strong> {profile.email}</div>
-          <div><strong>Bio:</strong> {profile.bio}</div>
-          <div><strong>Avatar:</strong> {profile.avatar ? <img src={profile.avatar} alt="avatar" className={styles.avatar} /> : 'No avatar'}</div>
-          <button className={styles.editBtn} onClick={() => setEditMode(true)}>Edit Profile</button>
+          <div className={styles.profileHeader}>
+            <div className={styles.avatarSection}>
+              {profile.avatar ? (
+                <img src={profile.avatar} alt="avatar" className={styles.profileAvatar} />
+              ) : (
+                <div className={styles.placeholderAvatar}>No Avatar</div>
+              )}
+            </div>
+            <div className={styles.profileDetails}>
+              <h2>{profile.name}</h2>
+              <p className={styles.email}>{profile.email}</p>
+              {profile.bio && <p className={styles.bio}>{profile.bio}</p>}
+              <button className={styles.editBtn} onClick={() => setEditMode(true)}>Edit Profile</button>
+            </div>
+          </div>
         </div>
       ) : (
         <form className={styles.editForm} onSubmit={handleUpdate}>

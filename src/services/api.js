@@ -1,5 +1,8 @@
 const API_BASE_URL = 'http://localhost:5000/api';
 
+// Helper function to get token
+const getToken = () => localStorage.getItem('accessToken');
+
 // Auth API calls
 export const authAPI = {
   register: (name, email, password, confirmPassword) =>
@@ -7,6 +10,9 @@ export const authAPI = {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, email, password, confirmPassword }),
+    }).then(res => {
+      if (!res.ok) return res.json().then(err => { throw err; });
+      return res.json();
     }),
 
   login: (email, password) =>
@@ -14,113 +20,177 @@ export const authAPI = {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),
+    }).then(res => {
+      if (!res.ok) return res.json().then(err => { throw err; });
+      return res.json();
     }),
 
   getCurrentUser: (token) =>
     fetch(`${API_BASE_URL}/auth/me`, {
       headers: { Authorization: `Bearer ${token}` },
+    }).then(res => {
+      if (!res.ok) return res.json().then(err => { throw err; });
+      return res.json();
+    }),
+
+  refreshToken: (refreshToken) =>
+    fetch(`${API_BASE_URL}/auth/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refreshToken }),
+    }).then(res => {
+      if (!res.ok) return res.json().then(err => { throw err; });
+      return res.json();
     }),
 };
 
 // Game API calls
 export const gameAPI = {
-  getAllGames: (page = 1, limit = 10, search = '', genre = '', sort = '') => {
-    const params = new URLSearchParams({ page, limit });
+  getGames: ({ search = '', genre = '', platform = '', sort = '-createdAt', page = 1, limit = 10 } = {}) => {
+    const params = new URLSearchParams({ page, limit, sort });
     if (search) params.append('search', search);
     if (genre) params.append('genre', genre);
-    if (sort) params.append('sort', sort);
+    if (platform) params.append('platform', platform);
 
-    return fetch(`${API_BASE_URL}/games?${params}`);
+    return fetch(`${API_BASE_URL}/games?${params}`, {
+      headers: { Authorization: `Bearer ${getToken()}` },
+    }).then(res => {
+      if (!res.ok) return res.json().then(err => { throw err; });
+      return res.json();
+    });
   },
 
-  getGameById: (id) => fetch(`${API_BASE_URL}/games/${id}`),
+  getGameById: (id) => 
+    fetch(`${API_BASE_URL}/games/${id}`, {
+      headers: { Authorization: `Bearer ${getToken()}` },
+    }).then(res => {
+      if (!res.ok) return res.json().then(err => { throw err; });
+      return res.json();
+    }),
 
-  createGame: (gameData, token) => {
-    const formData = new FormData();
-    Object.keys(gameData).forEach((key) => {
-      if (key === 'platform') {
-        formData.append(key, JSON.stringify(gameData[key]));
-      } else {
-        formData.append(key, gameData[key]);
+  createGame: (gameData) => {
+    const body = new FormData();
+    if (gameData.platform && Array.isArray(gameData.platform)) {
+      body.append('platform', JSON.stringify(gameData.platform));
+    } else {
+      body.append('platform', JSON.stringify([]));
+    }
+    Object.keys(gameData).forEach(key => {
+      if (key !== 'platform') {
+        body.append(key, gameData[key] || '');
       }
     });
 
     return fetch(`${API_BASE_URL}/games`, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${token}` },
-      body: formData,
+      headers: { Authorization: `Bearer ${getToken()}` },
+      body,
+    }).then(res => {
+      if (!res.ok) return res.json().then(err => { throw err; });
+      return res.json();
     });
   },
 
-  updateGame: (id, gameData, token) => {
-    const formData = new FormData();
-    Object.keys(gameData).forEach((key) => {
-      if (key === 'platform') {
-        formData.append(key, JSON.stringify(gameData[key]));
-      } else {
-        formData.append(key, gameData[key]);
+  updateGame: (id, gameData) => {
+    const body = new FormData();
+    if (gameData.platform && Array.isArray(gameData.platform)) {
+      body.append('platform', JSON.stringify(gameData.platform));
+    } else {
+      body.append('platform', JSON.stringify([]));
+    }
+    Object.keys(gameData).forEach(key => {
+      if (key !== 'platform') {
+        body.append(key, gameData[key] || '');
       }
     });
 
     return fetch(`${API_BASE_URL}/games/${id}`, {
       method: 'PATCH',
-      headers: { Authorization: `Bearer ${token}` },
-      body: formData,
+      headers: { Authorization: `Bearer ${getToken()}` },
+      body,
+    }).then(res => {
+      if (!res.ok) return res.json().then(err => { throw err; });
+      return res.json();
     });
   },
 
-  deleteGame: (id, token) =>
+  deleteGame: (id) =>
     fetch(`${API_BASE_URL}/games/${id}`, {
       method: 'DELETE',
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { Authorization: `Bearer ${getToken()}` },
+    }).then(res => {
+      if (!res.ok) return res.json().then(err => { throw err; });
+      return res.json();
     }),
 
-  getUserGames: (token) =>
+  getUserGames: () =>
     fetch(`${API_BASE_URL}/games/user/my-games`, {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { Authorization: `Bearer ${getToken()}` },
+    }).then(res => {
+      if (!res.ok) return res.json().then(err => { throw err; });
+      return res.json();
     }),
 };
 
 // User API calls
 export const userAPI = {
-  getUserProfile: (id) => fetch(`${API_BASE_URL}/users/${id}`),
+  getUserProfile: (id) => 
+    fetch(`${API_BASE_URL}/users/${id}`, {
+      headers: { Authorization: `Bearer ${getToken()}` },
+    }).then(res => {
+      if (!res.ok) return res.json().then(err => { throw err; });
+      return res.json();
+    }),
 
-  updateProfile: (id, profileData, token) =>
+  updateProfile: (id, profileData) =>
     fetch(`${API_BASE_URL}/users/${id}/profile`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${getToken()}`,
       },
       body: JSON.stringify(profileData),
+    }).then(res => {
+      if (!res.ok) return res.json().then(err => { throw err; });
+      return res.json();
     }),
 
-  changePassword: (id, passwordData, token) =>
+  changePassword: (id, passwordData) =>
     fetch(`${API_BASE_URL}/users/${id}/change-password`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${getToken()}`,
       },
       body: JSON.stringify(passwordData),
+    }).then(res => {
+      if (!res.ok) return res.json().then(err => { throw err; });
+      return res.json();
     }),
 
-  getDashboard: (id, token) =>
+  getDashboard: (id) =>
     fetch(`${API_BASE_URL}/users/${id}/dashboard`, {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { Authorization: `Bearer ${getToken()}` },
+    }).then(res => {
+      if (!res.ok) return res.json().then(err => { throw err; });
+      return res.json();
     }),
 };
 
 // Upload API
 export const uploadAPI = {
-  uploadImage: (file, token) => {
+  uploadImage: (file) => {
     const formData = new FormData();
     formData.append('image', file);
 
     return fetch(`${API_BASE_URL}/upload`, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { Authorization: `Bearer ${getToken()}` },
       body: formData,
+    }).then(res => {
+      if (!res.ok) return res.json().then(err => { throw err; });
+      return res.json();
     });
   },
 };
+

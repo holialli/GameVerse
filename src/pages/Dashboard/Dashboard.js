@@ -34,10 +34,19 @@ const Dashboard = () => {
   return (
     <div className={styles.container}>
       <h1>Welcome, {dashboard.user.name}!</h1>
-      <div className={styles.stats}>
-        <div>Total Games: {dashboard.stats.totalGames}</div>
-        <div>Average Rating: {dashboard.stats.averageRating}</div>
+      <p className={styles.muted}>{dashboard.user.email}</p>
+
+      <div className={styles.statCards}>
+        <div className={styles.statCard}>
+          <div className={styles.statLabel}>Total Games</div>
+          <div className={styles.statValue}>{dashboard.stats.totalGames}</div>
+        </div>
+        <div className={styles.statCard}>
+          <div className={styles.statLabel}>Average Rating</div>
+          <div className={styles.statValue}>{dashboard.stats.averageRating}</div>
+        </div>
       </div>
+
       <h2>Recent Games</h2>
       {dashboard.recentGames.length === 0 ? (
         <p className={styles.muted}>You have not added any games yet.</p>

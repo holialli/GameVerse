@@ -115,7 +115,7 @@ describe('Game Controller', () => {
 
       expect(res.statusCode).toBe(200);
       expect(res.body.games.length).toBe(2);
-      expect(res.body.pagination.total).toBe(2);
+      expect(res.body.total).toBe(2);
     });
 
     it('should filter games by genre', async () => {
@@ -130,12 +130,12 @@ describe('Game Controller', () => {
 
       expect(res.statusCode).toBe(200);
       expect(res.body.games.length).toBe(1);
-      expect(res.body.pagination.page).toBe(1);
-      expect(res.body.pagination.limit).toBe(1);
+      expect(res.body.page).toBe(1);
+      expect(res.body.limit).toBe(1);
     });
 
     it('should sort by rating', async () => {
-      const res = await request(app).get('/api/games?sort=rating');
+      const res = await request(app).get('/api/games?sort=-rating');
 
       expect(res.statusCode).toBe(200);
       expect(res.body.games[0].rating).toBeGreaterThanOrEqual(res.body.games[1].rating);
