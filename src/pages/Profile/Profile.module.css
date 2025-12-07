@@ -18,6 +18,59 @@ h1 {
   margin-bottom: 24px;
 }
 
+.profileHeader {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+.avatarSection {
+  flex-shrink: 0;
+}
+
+.profileAvatar {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid var(--primary);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+.placeholderAvatar {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: #ddd;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #666;
+  font-weight: 600;
+  border: 3px solid #ccc;
+}
+
+.profileDetails {
+  flex: 1;
+}
+
+.profileDetails h2 {
+  margin: 0 0 8px 0;
+  color: var(--primary);
+  font-size: 24px;
+}
+
+.email {
+  color: #666;
+  margin: 4px 0 8px 0;
+}
+
+.bio {
+  color: var(--text);
+  margin: 8px 0 16px 0;
+  line-height: 1.5;
+}
+
 .avatar {
   width: 60px;
   height: 60px;

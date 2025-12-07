@@ -29,41 +29,41 @@ exports.createGame = async (req, res) => {
 // Get all games with filters and pagination
 exports.getAllGames = async (req, res) => {
   try {
-    const { page = 1, limit = 10, search, genre, sort } = req.query;
-    const skip = (page - 1) * limit;
+    const { page = 1, limit = 10, search, genre, platform, sort = '-createdAt' } = req.query;
+    const skip = (parseInt(page) - 1) * parseInt(limit);
 
     let filter = {};
+    
     if (search) {
       filter.$text = { $search: search };
     }
     if (genre) {
       filter.genre = genre;
     }
+    if (platform) {
+      filter.platform = platform;
+    }
 
     let query = Game.find(filter)
       .populate('createdBy', 'name email avatar')
       .skip(skip)
-      .limit(Number(limit));
+      .limit(parseInt(limit));
 
-    if (sort === 'rating') {
-      query = query.sort({ rating: -1 });
-    } else if (sort === 'newest') {
-      query = query.sort({ createdAt: -1 });
-    } else if (sort === 'oldest') {
-      query = query.sort({ createdAt: 1 });
+    // Handle sort parameter (can be '-createdAt', 'createdAt', '-rating', 'rating', 'title', '-title')
+    if (sort) {
+      query = query.sort(sort);
     }
 
     const games = await query;
     const total = await Game.countDocuments(filter);
+    const totalPages = Math.ceil(total / parseInt(limit));
 
     res.json({
       games,
-      pagination: {
-        page: Number(page),
-        limit: Number(limit),
-        total,
-        pages: Math.ceil(total / limit),
-      },
+      total,
+      page: parseInt(page),
+      limit: parseInt(limit),
+      totalPages,
     });
   } catch (error) {
     res.status(500).json({ message: error.message });

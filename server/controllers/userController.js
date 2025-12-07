@@ -1,5 +1,7 @@
+const mongoose = require('mongoose');
 const User = require('../models/User');
 const Game = require('../models/Game');
+const { sendPasswordChangedEmail } = require('../services/emailService');
 
 // Get user profile
 exports.getUserProfile = async (req, res) => {
@@ -63,6 +65,9 @@ exports.changePassword = async (req, res) => {
     user.password = newPassword;
     await user.save();
 
+    // Send password changed email (async, don't wait)
+    sendPasswordChangedEmail(user.email, user.name).catch(err => console.error('Email error:', err));
+
     res.json({ message: 'Password changed successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -81,7 +86,7 @@ exports.getDashboard = async (req, res) => {
       .limit(5);
 
     const genres = await Game.aggregate([
-      { $match: { createdBy: require('mongoose').Types.ObjectId(userId) } },
+      { $match: { createdBy: new mongoose.Types.ObjectId(userId) } },
       { $group: { _id: '$genre', count: { $sum: 1 } } },
     ]);
 

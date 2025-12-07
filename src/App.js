@@ -13,6 +13,7 @@ import Login from './pages/Login/Login';
 import Register from './pages/Register/Register';
 import Dashboard from './pages/Dashboard/Dashboard';
 import Profile from './pages/Profile/Profile';
+import Games from './pages/Games/Games';
 
 function App() {
   return (
@@ -43,6 +44,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <Profile />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/games"
+            element={
+              <ProtectedRoute>
+                <Games />
               </ProtectedRoute>
             }
           />

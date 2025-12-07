@@ -20,6 +20,34 @@ h1 {
   font-size: 18px;
 }
 
+.statCards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.statCard {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: var(--shadow);
+}
+
+.statLabel {
+  font-size: 13px;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.statValue {
+  font-size: 24px;
+  font-weight: 700;
+}
+
 .gamesList, .genresList {
   list-style: none;
   padding: 0;
