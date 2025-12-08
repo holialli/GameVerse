@@ -24,7 +24,6 @@ const Home = () => {
             <Link className="button primary" to="/genres">Explore Genres</Link>
             <Link className="button ghost" to="/news">Latest News</Link>
           </div>
-            {/* Include Ask AI Chatbot */}
           <AskAI />
         </div>
       </section>
