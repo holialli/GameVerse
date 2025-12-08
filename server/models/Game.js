@@ -72,4 +72,4 @@ const gameSchema = new mongoose.Schema(
 // Index for search
 gameSchema.index({ title: 'text', description: 'text' });
 
-module.exports = mongoose.model('Game', gameSchema);
+module.exports = mongoose.model('Game', gameSchema, 'Games');

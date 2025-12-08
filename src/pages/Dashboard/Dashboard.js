@@ -4,7 +4,7 @@ import { userAPI } from '../../services/api';
 import styles from './Dashboard.module.css';
 
 const Dashboard = () => {
-  const { user, accessToken, logout } = useAuth();
+  const { user, accessToken } = useAuth();
   const [dashboard, setDashboard] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
