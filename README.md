@@ -1,106 +1,189 @@
-# Project: GameVerse (React Conversion)
+﻿# GameVerse
 
-This project is a React conversion of a static HTML/CSS website for Assignment 2. It rebuilds the "GameVerse" site as a dynamic, data-driven application using modern React principles.
-
----
-
-## 🛠️ Setup and Run Instructions
-
-1.  **Clone the repository:**
-    ```bash
-    git clone [your-repo-link]
-    ```
-2.  **Navigate to the project directory:**
-    ```bash
-    cd gameverse-react
-    ```
-3.  **Install dependencies:**
-    ```bash
-    npm install
-    ```
-4.  **Set up Firebase:**
-    * Create a project on [Firebase](https://firebase.google.com/).
-    * Create a new **Firestore Database**.
-    * Go to Project Settings and get your web app configuration.
-    * Copy your config object into `src/services/firebaseConfig.js`.
-5.  **Run the application:**
-    ```bash
-    npm run dev
-    ```
-
-## 🚀 Deployment (frontend + backend)
-
-- **Frontend (Vercel or Netlify):** Deploy the React build; set `REACT_APP_NEWSAPI_KEY` (optional) in project env vars. Point `CLIENT_URL` on the backend to the deployed frontend origin.
-- **Backend (Render/Railway/Fly/Heroku-like):** Deploy the Node/Express server from the `server` folder. Set env vars: `PORT`, `MONGODB_URI` (use MongoDB Atlas), `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`, `CLIENT_URL` (frontend origin), `RATE_LIMIT_WINDOW`, `RATE_LIMIT_MAX_REQUESTS`. Enable persistent storage only if you self-host Mongo; otherwise prefer Atlas.
-- **Database (MongoDB Atlas recommended):** Create a cluster, add a database user (e.g., `gameverse_app`), and use the SRV URI in `MONGODB_URI`, for example `mongodb+srv://gameverse_app:<password>@<cluster>/gameverse?retryWrites=true&w=majority`.
-- **Build commands:** Frontend: `npm run build`. Backend: `npm install` then `npm run start` (or `npm run dev` for previews). Ensure CORS `CLIENT_URL` matches the deployed frontend.
-- **Secrets handling:** Do not commit `.env`. Configure env vars in your hosting provider’s dashboard. Rotate JWT secrets if leaked.
-
-## 🔌 API(s) Used
-
-* [cite_start]**DummyJSON API** [cite: 23]
-    * **Endpoint:** `https://dummyjson.com/posts?limit=6`
-    * **Usage:** Used on the **/News** page to fetch mock blog posts and display them dynamically.
-    * **Endpoint:** `https://dummyjson.com/posts/search?q=[prompt]`
-    * **Usage:** Used by the **"Ask AI"** component on the Home page to simulate an AI API response.
-
-* [cite_start]**Firebase Firestore** [cite: 23]
-    * **Usage:** The form on the **/Contact** page sends user messages (name, email, message) to a `messages` collection in Firestore.
-
-* **NewsAPI (optional — recommended for real gaming articles)**
-        * **Usage:** When configured, the **/News** page will query NewsAPI.org for recent gaming and esports articles.
-        * **How to enable:**
-            1. Sign up at https://newsapi.org/ and get your API key.
-            2. Create a `.env` file in the project root (DO NOT commit this file). Add this line to it:
-                 ```powershell
-                 REACT_APP_NEWSAPI_KEY=your_newsapi_key_here
-                 ```
-            3. Restart the dev server (`npm start`) so Create React App picks up the environment variable.
-        * **Notes:**
-            - The key must stay secret. Do not commit `.env` to GitHub — this repo's `.gitignore` already excludes `.env.*` and related files.
-            - If NewsAPI is not configured or fails, the app will try Reddit's `r/Games` JSON endpoint and then fall back to mock data from DummyJSON.
-            - For production, set the `NEWSAPI_KEY` (or equivalent) in your hosting platform's environment/secret settings (Vercel, Netlify, etc.) and use a server-side proxy if you want to avoid exposing requests from the client.
-      
-* **Google Generative API (optional — for Ask AI responses)**
-        * **Usage:** If you want the Ask AI widget to use Google Generative models (Gemini/Bison), you can set a local `.env` variable for development. For production, keep keys server-side.
-        * **Local dev setup (not for production):**
-            1. Create or edit `.env` in the project root (this repo's `.gitignore` excludes `.env.*`).
-                 ```powershell
-                 REACT_APP_GOOGLE_API_KEY=YOUR_GOOGLE_API_KEY_HERE
-                 ```
-            2. Restart the dev server (`npm start`). The Ask AI widget will use the key from `process.env.REACT_APP_GOOGLE_API_KEY` and call Google Generative API directly for responses.
-        * **Security note:** Embedding this key in a client-side build is insecure and only acceptable for local testing. Do not commit the key to source control. For production, use a server-side endpoint that holds the key and call that endpoint from the client.
+A modern web application for discovering and managing video games. Built with React, Express, and MongoDB, GameVerse provides a comprehensive platform for browsing games, reading gaming news, and managing user accounts.
 
 ---
 
-## 👥 Member Contributions
+## Getting Started
 
-* **[Your Name]:** (Describe your contributions, e.g., "Set up React project, implemented routing, converted all static pages to components, integrated DummyJSON API for News page.")
-* **[Partner Name]:** (Describe partner's contributions, e.g., "Set up Firebase, wired the Contact form to Firestore, implemented Theme Toggle with Local Storage, styled new components.")
+### Prerequisites
+
+- Node.js (v14 or higher)
+- MongoDB (local or MongoDB Atlas account)
+- npm or yarn package manager
+
+### Installation
+
+1. Clone the repository:
+   ```bash
+   git clone [repository-url]
+   cd my-app
+   ```
+
+2. Install frontend dependencies:
+   ```bash
+   npm install
+   ```
+
+3. Install backend dependencies:
+   ```bash
+   cd server
+   npm install
+   cd ..
+   ```
+
+4. Create environment files:
+   - In the root directory, create .env for frontend variables
+   - In the server directory, create .env for backend variables
+
+### Configuration
+
+Frontend (.env):
+```
+REACT_APP_NEWSAPI_KEY=your_newsapi_key
+REACT_APP_GOOGLE_API_KEY=your_google_api_key
+```
+
+Backend (server/.env):
+```
+PORT=5000
+MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/gameverse
+JWT_ACCESS_SECRET=your_access_secret
+JWT_REFRESH_SECRET=your_refresh_secret
+CLIENT_URL=http://localhost:3000
+RATE_LIMIT_WINDOW=15
+RATE_LIMIT_MAX_REQUESTS=100
+```
+
+### Running the Application
+
+Start the backend server:
+```bash
+cd server
+npm run dev
+```
+
+In a new terminal, start the frontend:
+```bash
+npm start
+```
+
+The application will open at http://localhost:3000
 
 ---
 
-## 📸 Screenshots
+## Project Structure
 
-[cite_start]*(You are required to add full-screen screenshots of all your website pages here)* 
+Frontend (React):
+- src/pages - Page components (Home, Dashboard, Games, News, Gallery, Events, Contact, Profile)
+- src/components - Reusable UI components
+- src/contexts - Authentication and app context
+- src/services - API calls and Firebase configuration
+- src/assets - CSS and images
 
-### Home Page
-![Home Page](...)
+Backend (Express):
+- server/routes - API routes for auth, games, users, uploads
+- server/models - MongoDB schemas
+- server/middleware - Authentication and validation middleware
+- server/config - Database and configuration setup
 
-### Genres Page
-![Genres Page](...)
+---
 
-### Popular Page
-![Popular Page](...)
+## Features
 
-### News Page (with API data)
-![News Page](...)
+User Features:
+- Browse and search for games by genre, platform, and ratings
+- Create an account and manage profile
+- Purchase and rent games
+- Upload and manage avatar
+- View personalized dashboard with purchase history
+- Read gaming news and updates
+- Chat with AI assistant for gaming questions
 
-### Events Page
-![Events Page](...)
+Admin Features:
+- Manage game catalog (add, edit, delete games)
+- View platform analytics
+- Monitor user activity
+- Manage system settings
+- Dashboard with comprehensive statistics
 
-### Gallery Page (with Video)
-![Gallery Page](...)
+---
 
-### Contact Page (with Firebase Form)
-![Contact Page](...)
+## API Integration
+
+The application uses several external APIs:
+
+NewsAPI - Gaming news articles
+- Sign up at https://newsapi.org
+- Add your API key to the .env file as REACT_APP_NEWSAPI_KEY
+
+Google Generative API - AI chat functionality
+- Get your API key from Google Cloud Console
+- Add to .env as REACT_APP_GOOGLE_API_KEY
+
+DummyJSON - Fallback mock data
+- Used when external APIs are unavailable
+
+---
+
+## Deployment
+
+Frontend Deployment (Vercel/Netlify):
+1. Push code to GitHub
+2. Connect repository to Vercel or Netlify
+3. Set environment variables in platform settings
+4. Deploy
+
+Backend Deployment (Render/Railway/Heroku):
+1. Create account on your chosen platform
+2. Connect repository
+3. Set environment variables
+4. Configure start command: npm run start
+5. Deploy
+
+Database:
+- Use MongoDB Atlas for production
+- Create cluster and database user
+- Use connection string in MONGODB_URI
+
+---
+
+## Development
+
+Install additional dev dependencies if needed:
+```bash
+npm install --save-dev [package-name]
+```
+
+Build for production:
+```bash
+npm run build
+```
+
+Run tests:
+```bash
+npm test
+```
+
+---
+
+## Troubleshooting
+
+Port already in use:
+- Change PORT in server/.env or use: lsof -i :5000 to find and kill process
+
+MongoDB connection error:
+- Verify connection string in .env
+- Check if MongoDB Atlas IP whitelist includes your IP
+- Ensure database user credentials are correct
+
+API key errors:
+- Verify keys are correctly set in .env
+- Restart dev server after changing .env
+- Check API documentation for rate limits
+
+---
+
+## Contact and Support
+
+For issues or questions, please open an issue on the GitHub repository.
