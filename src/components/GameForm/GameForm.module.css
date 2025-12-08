@@ -1,0 +1,141 @@
+.form {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 24px;
+  background: var(--card);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+
+.formGroup {
+  margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.formGroup label {
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: var(--text);
+  font-size: 14px;
+}
+
+.formGroup input,
+.formGroup textarea,
+.formGroup select {
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 14px;
+  background: #0f1424;
+  color: var(--text);
+  font-family: inherit;
+}
+
+.formGroup input::placeholder,
+.formGroup textarea::placeholder {
+  color: var(--text-muted);
+}
+
+.formGroup select option {
+  background: #0f1424;
+  color: var(--text);
+}
+
+.formGroup input:focus,
+.formGroup textarea:focus,
+.formGroup select:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(255, 69, 0, 0.1);
+}
+
+.formGroup textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 600px) {
+  .row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.checkboxGroup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.checkbox input {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  margin: 0;
+  padding: 0;
+}
+
+.error {
+  padding: 12px;
+  background: rgba(229, 57, 53, 0.1);
+  color: #e53935;
+  border-radius: 4px;
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+.actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 24px;
+}
+
+.submitBtn,
+.cancelBtn {
+  padding: 10px 20px;
+  border-radius: 4px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.submitBtn {
+  background: var(--primary);
+  color: white;
+}
+
+.submitBtn:hover:not(:disabled) {
+  background: darkorange;
+}
+
+.submitBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.cancelBtn {
+  background: var(--border);
+  color: var(--text);
+}
+
+.cancelBtn:hover {
+  background: rgba(0, 0, 0, 0.1);
+}

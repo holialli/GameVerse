@@ -17,8 +17,9 @@
   --radius: 12px;
   --radius-sm: 8px;
   --shadow: 0 10px 30px rgba(0,0,0,0.35);
+}
 
-  /* For light theme  */
+/* For light theme (top-level block so it applies when html[data-theme='light']) */
 [data-theme='light'] {
   --bg: #f4f7fa; 
   --bg-elev: #ffffff; 
@@ -33,7 +34,6 @@
   --radius: 12px;
   --radius-sm: 8px;
   --shadow: 0 10px 30px rgba(0, 0, 0, 0.08); 
-}
 }
 
 * { box-sizing: border-box; }
@@ -66,7 +66,7 @@ a:hover { color: var(--primary-700); }
 
 header.site-header {
   position: sticky; top: 0; z-index: 50;
-  background: linear-gradient(180deg, rgba(20,28,43,0.95), rgba(20,28,43,0.80));
+  background: var(--bg-elev);
   backdrop-filter: blur(6px);
   border-bottom: 1px solid var(--border);
 }
@@ -124,7 +124,7 @@ footer.site-footer { border-top: 1px solid var(--border); background: var(--bg-e
 }
 
 .card { background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.00)); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); display: flex; flex-direction: column; min-height: 360px; position: relative; }
-.card-media { aspect-ratio: 16/9; background: #0a0f18; }
+.card-media { aspect-ratio: 16/9; background: var(--card); }
 .card-body { padding: 14px; display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
 .card:hover { transform: translateY(-6px); border-color: rgba(0,229,255,0.45); box-shadow: 0 18px 40px rgba(0, 229, 255, 0.18), 0 10px 30px rgba(0,0,0,0.45); }
 .card::before { content: ""; position: absolute; inset: -1px; border-radius: inherit; pointer-events: none; background: linear-gradient(180deg, rgba(0,229,255,0.15), rgba(168,85,247,0.12)); opacity: 0; }
@@ -145,4 +145,30 @@ footer.site-footer { border-top: 1px solid var(--border); background: var(--bg-e
 .icon.steam { mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="black" d="M12 2a10 10 0 0 0-9.5 7.1l4.2 1.8a3.5 3.5 0 1 1 2.9 5.6l-3.8-1.6A10 10 0 1 0 12 2Zm5 3a3 3 0 1 1 0 6 3 3 0 0 1 0-6Zm0 1.6a1.4 1.4 0 1 0 0 2.8 1.4 1.4 0 0 0 0-2.8Z"/></svg>'); }
 .icon.x { mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="black" d="M3 3h3.7l5.1 7.2L17.8 3H21l-7.8 10.5L21.5 21H17.8l-5.3-7.5L6 21H2.5l8.1-11.1L3 3Z"/></svg>'); }
 
+/* Custom scrollbar styling */
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-elev);
+  border-radius: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 6px;
+  border: 2px solid var(--bg-elev);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--muted);
+}
+
+/* For Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) var(--bg-elev);
+}
 

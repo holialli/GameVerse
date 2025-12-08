@@ -2,6 +2,7 @@ import  { useState, useEffect } from 'react';
 import styles from './ThemeToggle.module.css';
 
 // Reads from Local Storage
+// Default to 'dark' so the site starts in dark mode
 const getInitialTheme = () => {
   const savedTheme = localStorage.getItem('theme');
   return savedTheme ? savedTheme : 'dark';
