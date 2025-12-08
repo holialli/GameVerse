@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import styles from './Games.module.css';
 import GameForm from '../../components/GameForm/GameForm';
@@ -39,7 +39,7 @@ const Games = () => {
     setSearchParams(params);
   }, [search, genre, platform, sort, page, limit, setSearchParams]);
 
-  const fetchGames = async () => {
+  const fetchGames = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
@@ -58,11 +58,11 @@ const Games = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [search, genre, platform, sort, page, limit]);
 
   useEffect(() => {
     fetchGames();
-  }, [search, genre, platform, sort, page]);
+  }, [fetchGames]);
 
   const handleDeleteGame = async (gameId) => {
     if (!window.confirm('Are you sure you want to delete this game?')) return;

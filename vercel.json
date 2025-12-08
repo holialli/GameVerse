@@ -3,7 +3,6 @@
   "outputDirectory": "build",
   "installCommand": "npm install",
   "env": {
-    "REACT_APP_API_URL": "@gameverse_api_url",
     "CI": "false"
   }
 }

@@ -37,7 +37,12 @@ const News = () => {
 
         setArticles(mapped);
       } catch (err) {
-        setError(err.message);
+        console.error('News fetch error:', err);
+        if (err.message.includes('426')) {
+          setError('News API limit reached. Please try again later.');
+        } else {
+          setError(err.message || 'Failed to load gaming news');
+        }
       } finally {
         setIsLoading(false);
       }
