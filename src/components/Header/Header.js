@@ -18,8 +18,8 @@ const Header = () => {
         <nav className="primary-nav" aria-label="Primary">
           <ul className="nav-list">
             {isAuthenticated && <li><NavLink to="/dashboard">Dashboard</NavLink></li>}
-            {isAuthenticated && <li><NavLink to="/games">Games</NavLink></li>}
             <li><NavLink to="/">Home</NavLink></li>
+            {isAuthenticated && <li><NavLink to="/games">Games</NavLink></li>}
             <li><NavLink to="/genres">Genres</NavLink></li>
             <li><NavLink to="/popular">Popular</NavLink></li>
             <li><NavLink to="/news">News</NavLink></li>
@@ -30,7 +30,6 @@ const Header = () => {
           </ul>
         </nav>
         <div className={styles.controls}>
-          <ThemeToggle /> 
           {isAuthenticated ? (
             <div className={styles.authBlock}>
               {user?.avatar && (
@@ -38,7 +37,7 @@ const Header = () => {
                   <img src={user.avatar} alt="Profile" className={styles.headerAvatar} />
                 </Link>
               )}
-              <button className={styles.logoutBtn} onClick={logout}>Sign out</button>
+              <button className={styles.logoutBtn} onClick={logout}>Sign Out</button>
             </div>
           ) : (
             <div className={styles.authBlock}>
@@ -46,6 +45,7 @@ const Header = () => {
               <Link to="/register" className={styles.authBtnPrimary}>Register</Link>
             </div>
           )}
+          <ThemeToggle />
         </div>
       </div>
     </header>

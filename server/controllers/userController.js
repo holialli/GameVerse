@@ -102,15 +102,30 @@ exports.getDashboard = async (req, res) => {
         { $group: { _id: '$genre', count: { $sum: 1 } } },
       ]);
 
+      // Additional analytics for admins
+      const totalUsers = await User.countDocuments();
+      const totalPurchases = await Purchase.countDocuments();
+      const totalPlatforms = await Game.aggregate([
+        { $unwind: '$platform' },
+        { $group: { _id: '$platform', count: { $sum: 1 } } },
+      ]);
+      const topRatedGames = await Game.find()
+        .sort({ rating: -1 })
+        .limit(5);
+
       dashboardData.stats = {
         totalGames,
         averageRating:
           recentGames.length > 0
             ? (recentGames.reduce((sum, g) => sum + g.rating, 0) / recentGames.length).toFixed(2)
             : 0,
+        totalUsers,
+        totalPurchases,
+        platformBreakdown: totalPlatforms,
       };
       dashboardData.recentGames = recentGames;
       dashboardData.genreBreakdown = genres;
+      dashboardData.topRatedGames = topRatedGames;
     } else {
       // Regular user dashboard - show purchases and rentals
       const purchases = await Purchase.find({

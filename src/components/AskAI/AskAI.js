@@ -154,7 +154,6 @@ const AskAI = () => {
               </div>
             )}
 
-            {/* Success Response */}
             {response && response.type === 'articles' && (
               <div className={styles.aiResponse}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -178,17 +177,14 @@ const AskAI = () => {
                   <strong>GameVerse AI</strong>
                   {response.provider && <small className={styles.aiProvider}>{response.provider}</small>}
                 </div>
-                {/* Note: This preserves newlines from the AI */}
                 <div style={{ whiteSpace: 'pre-wrap', marginTop: '8px' }}>{response.text}</div>
               </div>
             )}
 
-            {/* No Result */}
             {response && response.type === 'none' && (
               <div className={styles.aiResponse}>{response.text}</div>
             )}
 
-            {/* Default State */}
             {!response && !error && (
               <div className={styles.aiResponse}>
                 <small>Ask me about release dates, lore, or tips!</small>
