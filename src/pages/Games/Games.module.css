@@ -91,7 +91,7 @@
   padding: 10px 12px;
   border: 1px solid var(--border);
   border-radius: 4px;
-  background: var(--surface);
+  background: #0f1424;
   color: var(--text);
   font-size: 14px;
   font-family: inherit;
@@ -101,6 +101,15 @@
 .filterSelect:focus {
   outline: none;
   border-color: var(--primary);
+}
+
+.searchInput::placeholder {
+  color: var(--text-muted);
+}
+
+.filterSelect option {
+  background: #0f1424;
+  color: var(--text);
 }
 
 .resetBtn {
@@ -146,7 +155,8 @@
 }
 
 .gameCard {
-  background: var(--surface);
+  background: #1a1f2e;
+  color: #ffffff;
   border: 1px solid var(--border);
   border-radius: 8px;
   overflow: hidden;

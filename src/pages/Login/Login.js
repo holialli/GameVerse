@@ -67,6 +67,9 @@ const Login = () => {
         <p className={styles.redirect}>
           Don't have an account? <Link to="/register">Register here</Link>
         </p>
+              <p className={styles.redirect}>
+                Forgot password? <Link to="/forgot-password">Reset here</Link>
+              </p>
       </div>
     </div>
   );

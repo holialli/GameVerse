@@ -28,9 +28,19 @@
   border: 1px solid var(--border);
   border-radius: 4px;
   font-size: 14px;
-  background: var(--background);
+  background: #0f1424;
   color: var(--text);
   font-family: inherit;
+}
+
+.formGroup input::placeholder,
+.formGroup textarea::placeholder {
+  color: var(--text-muted);
+}
+
+.formGroup select option {
+  background: #0f1424;
+  color: var(--text);
 }
 
 .formGroup input:focus,

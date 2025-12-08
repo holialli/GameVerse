@@ -93,6 +93,9 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
     localStorage.removeItem('user');
+    
+    // Reload page to reflect logged out state
+    window.location.href = '/';
   };
 
   const refreshAccessToken = async () => {

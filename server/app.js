@@ -29,9 +29,9 @@ const limiter = rateLimit({
 
 app.use('/api/', limiter);
 
-// Body parser middleware
-app.use(express.json({ limit: '10kb' }));
-app.use(express.urlencoded({ limit: '10kb', extended: true }));
+// Body parser middleware - increased limit for image uploads (base64)
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Static files
 app.use('/public', express.static('public'));
