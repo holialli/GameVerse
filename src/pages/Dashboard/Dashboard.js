@@ -14,12 +14,11 @@ const Dashboard = () => {
       setLoading(true);
       setError('');
       try {
-        const res = await userAPI.getDashboard(user.id, accessToken);
-        if (!res.ok) throw new Error('Failed to load dashboard');
-        const data = await res.json();
+        const data = await userAPI.getDashboard(user.id);
         setDashboard(data);
       } catch (err) {
-        setError(err.message);
+        console.error('Dashboard error:', err);
+        setError(err.message || 'Failed to load dashboard');
       } finally {
         setLoading(false);
       }

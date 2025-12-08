@@ -15,7 +15,7 @@ const gameSchema = new mongoose.Schema(
     },
     genre: {
       type: String,
-      enum: ['RPG', 'FPS', 'Strategy', 'Sports', 'Adventure', 'Puzzle', 'Other'],
+      enum: ['Action', 'Adventure', 'RPG', 'Strategy', 'Simulation', 'Puzzle', 'Sports', 'Horror', 'Indie', 'FPS'],
       required: [true, 'Please specify a genre'],
     },
     releaseDate: {
