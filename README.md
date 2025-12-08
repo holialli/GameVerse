@@ -15,22 +15,22 @@ A modern web application for discovering and managing video games. Built with Re
 ### Installation
 
 1. Clone the repository:
-   ```bash
+    bash
    git clone [repository-url]
    cd my-app
-   ```
+    
 
 2. Install frontend dependencies:
-   ```bash
+    bash
    npm install
-   ```
+    
 
 3. Install backend dependencies:
-   ```bash
+    bash
    cd server
    npm install
    cd ..
-   ```
+    
 
 4. Create environment files:
    - In the root directory, create .env for frontend variables
@@ -39,13 +39,13 @@ A modern web application for discovering and managing video games. Built with Re
 ### Configuration
 
 Frontend (.env):
-```
+ 
 REACT_APP_NEWSAPI_KEY=your_newsapi_key
 REACT_APP_GOOGLE_API_KEY=your_google_api_key
-```
+ 
 
 Backend (server/.env):
-```
+ 
 PORT=5000
 MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/gameverse
 JWT_ACCESS_SECRET=your_access_secret
@@ -53,20 +53,20 @@ JWT_REFRESH_SECRET=your_refresh_secret
 CLIENT_URL=http://localhost:3000
 RATE_LIMIT_WINDOW=15
 RATE_LIMIT_MAX_REQUESTS=100
-```
+ 
 
 ### Running the Application
 
 Start the backend server:
-```bash
+ bash
 cd server
 npm run dev
-```
+ 
 
 In a new terminal, start the frontend:
-```bash
+ bash
 npm start
-```
+ 
 
 The application will open at http://localhost:3000
 
@@ -151,19 +151,19 @@ Database:
 ## Development
 
 Install additional dev dependencies if needed:
-```bash
+ bash
 npm install --save-dev [package-name]
-```
+ 
 
 Build for production:
-```bash
+ bash
 npm run build
-```
+ 
 
 Run tests:
-```bash
+ bash
 npm test
-```
+ 
 
 ---
 
