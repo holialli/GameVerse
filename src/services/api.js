@@ -76,8 +76,8 @@ export const gameAPI = {
       body.append('platform', JSON.stringify([]));
     }
     Object.keys(gameData).forEach(key => {
-      if (key !== 'platform') {
-        body.append(key, gameData[key] || '');
+      if (key !== 'platform' && gameData[key] !== '' && gameData[key] !== null && gameData[key] !== undefined) {
+        body.append(key, gameData[key]);
       }
     });
 
@@ -99,8 +99,8 @@ export const gameAPI = {
       body.append('platform', JSON.stringify([]));
     }
     Object.keys(gameData).forEach(key => {
-      if (key !== 'platform') {
-        body.append(key, gameData[key] || '');
+      if (key !== 'platform' && gameData[key] !== '' && gameData[key] !== null && gameData[key] !== undefined) {
+        body.append(key, gameData[key]);
       }
     });
 

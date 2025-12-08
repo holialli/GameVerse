@@ -15,22 +15,28 @@ exports.loginSchema = Joi.object({
 exports.createGameSchema = Joi.object({
   title: Joi.string().required().max(100),
   description: Joi.string().required().max(1000),
-  genre: Joi.string().required().valid('RPG', 'FPS', 'Strategy', 'Sports', 'Adventure', 'Puzzle', 'Other'),
+  genre: Joi.string().required().valid('Action', 'Adventure', 'RPG', 'Strategy', 'Simulation', 'Puzzle', 'Sports', 'Horror', 'Indie', 'FPS'),
   releaseDate: Joi.date().required(),
   rating: Joi.number().min(0).max(10),
   platform: Joi.array()
     .items(Joi.string().valid('PC', 'PlayStation', 'Xbox', 'Nintendo', 'Mobile'))
     .required()
     .min(1),
-  developer: Joi.string().required(),
+  developer: Joi.string().allow(''),
+  imageUrl: Joi.string().allow(''),
+  buyPrice: Joi.number().min(0.99).optional(),
+  rentPrice: Joi.number().min(0.99).optional(),
 });
 
 exports.updateGameSchema = Joi.object({
-  title: Joi.string().max(100),
-  description: Joi.string().max(1000),
-  genre: Joi.string().valid('RPG', 'FPS', 'Strategy', 'Sports', 'Adventure', 'Puzzle', 'Other'),
-  releaseDate: Joi.date(),
-  rating: Joi.number().min(0).max(10),
-  platform: Joi.array().items(Joi.string().valid('PC', 'PlayStation', 'Xbox', 'Nintendo', 'Mobile')).min(1),
-  developer: Joi.string(),
-}).min(1);
+  title: Joi.string().max(100).optional().allow(''),
+  description: Joi.string().max(1000).optional().allow(''),
+  genre: Joi.string().valid('Action', 'Adventure', 'RPG', 'Strategy', 'Simulation', 'Puzzle', 'Sports', 'Horror', 'Indie', 'FPS').optional(),
+  releaseDate: Joi.date().optional(),
+  rating: Joi.number().min(0).max(10).optional(),
+  platform: Joi.array().items(Joi.string().valid('PC', 'PlayStation', 'Xbox', 'Nintendo', 'Mobile')).optional(),
+  developer: Joi.string().allow('').optional(),
+  imageUrl: Joi.string().allow('').optional(),
+  buyPrice: Joi.number().min(0.99).optional(),
+  rentPrice: Joi.number().min(0.99).optional(),
+}).unknown(true);

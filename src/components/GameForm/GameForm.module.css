@@ -2,9 +2,10 @@
   max-width: 600px;
   margin: 0 auto;
   padding: 24px;
-  background: var(--surface);
+  background: var(--card);
   border-radius: 8px;
   border: 1px solid var(--border);
+  color: var(--text);
 }
 
 .formGroup {

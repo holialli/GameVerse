@@ -11,7 +11,9 @@ const GameForm = ({ game = null, onSubmit, onCancel }) => {
     rating: 5,
     platform: [],
     developer: '',
-    imageUrl: ''
+    imageUrl: '',
+    buyPrice: 9.99,
+    rentPrice: 2.99
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -26,7 +28,9 @@ const GameForm = ({ game = null, onSubmit, onCancel }) => {
         rating: game.rating || 5,
         platform: Array.isArray(game.platform) ? game.platform : [],
         developer: game.developer || '',
-        imageUrl: game.imageUrl || ''
+        imageUrl: game.imageUrl || '',
+        buyPrice: game.buyPrice || 9.99,
+        rentPrice: game.rentPrice || 2.99
       });
     }
   }, [game]);
@@ -88,18 +92,44 @@ const GameForm = ({ game = null, onSubmit, onCancel }) => {
       if (formData.rating < 0 || formData.rating > 10) {
         throw new Error('Rating must be between 0 and 10');
       }
+      if (formData.buyPrice < 0.99) {
+        throw new Error('Buy price must be at least $0.99');
+      }
+      if (formData.rentPrice < 0.99) {
+        throw new Error('Rent price must be at least $0.99');
+      }
+
+      // Only send the fields we need
+      const cleanData = {
+        title: formData.title,
+        description: formData.description,
+        genre: formData.genre,
+        releaseDate: formData.releaseDate,
+        rating: parseFloat(formData.rating),
+        platform: formData.platform,
+        developer: formData.developer,
+        imageUrl: formData.imageUrl,
+        buyPrice: parseFloat(formData.buyPrice),
+        rentPrice: parseFloat(formData.rentPrice),
+      };
+
+      console.log('Submitting data:', cleanData);
 
       if (game?._id) {
         // Update existing game
-        await gameAPI.updateGame(game._id, formData);
+        const response = await gameAPI.updateGame(game._id, cleanData);
+        console.log('Update response:', response);
       } else {
         // Create new game
-        await gameAPI.createGame(formData);
+        const response = await gameAPI.createGame(cleanData);
+        console.log('Create response:', response);
       }
 
       onSubmit();
     } catch (err) {
-      setError(err.message || 'Error saving game');
+      console.error('Form error:', err);
+      console.error('Error details:', err.response?.data || err.message);
+      setError(err.response?.data?.message || err.message || 'Error saving game');
     } finally {
       setLoading(false);
     }
@@ -186,6 +216,34 @@ const GameForm = ({ game = null, onSubmit, onCancel }) => {
             min="0"
             max="10"
             step="0.5"
+          />
+        </div>
+      </div>
+
+      <div className={styles.row}>
+        <div className={styles.formGroup}>
+          <label htmlFor="buyPrice">Buy Price ($)</label>
+          <input
+            type="number"
+            id="buyPrice"
+            name="buyPrice"
+            value={formData.buyPrice}
+            onChange={handleInputChange}
+            min="0.99"
+            step="0.01"
+          />
+        </div>
+
+        <div className={styles.formGroup}>
+          <label htmlFor="rentPrice">Rent Price ($)</label>
+          <input
+            type="number"
+            id="rentPrice"
+            name="rentPrice"
+            value={formData.rentPrice}
+            onChange={handleInputChange}
+            min="0.99"
+            step="0.01"
           />
         </div>
       </div>

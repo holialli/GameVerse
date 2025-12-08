@@ -3,12 +3,12 @@ const crypto = require('crypto');
 const User = require('../models/User');
 const { sendWelcomeEmail, sendPasswordResetEmail } = require('../services/emailService');
 
-const generateTokens = (userId) => {
-  const accessToken = jwt.sign({ id: userId }, process.env.JWT_ACCESS_SECRET, {
+const generateTokens = (userId, role = 'user') => {
+  const accessToken = jwt.sign({ id: userId, role }, process.env.JWT_ACCESS_SECRET, {
     expiresIn: process.env.JWT_ACCESS_EXPIRE || '15m',
   });
 
-  const refreshToken = jwt.sign({ id: userId }, process.env.JWT_REFRESH_SECRET, {
+  const refreshToken = jwt.sign({ id: userId, role }, process.env.JWT_REFRESH_SECRET, {
     expiresIn: process.env.JWT_REFRESH_EXPIRE || '7d',
   });
 
@@ -36,7 +36,7 @@ exports.register = async (req, res) => {
     // Send welcome email (async, don't wait)
     sendWelcomeEmail(email, name).catch(err => console.error('Email error:', err));
 
-    const { accessToken, refreshToken } = generateTokens(user._id);
+    const { accessToken, refreshToken } = generateTokens(user._id, user.role);
 
     res.status(201).json({
       message: 'User registered successfully',
@@ -71,7 +71,7 @@ exports.login = async (req, res) => {
       return res.status(401).json({ message: 'Invalid email or password' });
     }
 
-    const { accessToken, refreshToken } = generateTokens(user._id);
+    const { accessToken, refreshToken } = generateTokens(user._id, user.role);
 
     res.json({
       message: 'Login successful',
@@ -99,7 +99,7 @@ exports.refreshToken = async (req, res) => {
     }
 
     const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
-    const { accessToken, refreshToken: newRefreshToken } = generateTokens(decoded.id);
+    const { accessToken, refreshToken: newRefreshToken } = generateTokens(decoded.id, decoded.role);
 
     res.json({
       accessToken,
