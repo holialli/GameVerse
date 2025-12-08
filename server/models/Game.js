@@ -46,10 +46,22 @@ const gameSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    buyPrice: {
+      type: Number,
+      required: [true, 'Purchase price is required'],
+      min: [0, 'Price cannot be negative'],
+      default: 9.99,
+    },
+    rentPrice: {
+      type: Number,
+      required: [true, 'Rental price is required'],
+      min: [0, 'Price cannot be negative'],
+      default: 2.99,
+    },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      required: true,
+      default: null, // Admin games have no specific creator
     },
   },
   {

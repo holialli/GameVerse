@@ -25,7 +25,7 @@ const Header = () => {
             <li><NavLink to="/news">News</NavLink></li>
             <li><NavLink to="/events">Events</NavLink></li>
             <li><NavLink to="/gallery">Gallery</NavLink></li>
-            <li><NavLink to="/contact">Contact</NavLink></li>
+            {user?.role !== 'admin' && <li><NavLink to="/contact">Contact</NavLink></li>}
             {isAuthenticated && <li><NavLink to="/profile">Profile</NavLink></li>}
           </ul>
         </nav>

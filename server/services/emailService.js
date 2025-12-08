@@ -49,8 +49,8 @@ exports.sendWelcomeEmail = async (email, name) => {
         <p>Thank you for joining our gaming community.</p>
         <p>You can now:</p>
         <ul>
-          <li>Create and manage your game collection</li>
-          <li>Share your favorite games with the community</li>
+          <li>Buy and own your favorite games</li>
+          <li>Rent games for 7 days</li>
           <li>Discover new games and genres</li>
           <li>Connect with other gaming enthusiasts</li>
         </ul>
@@ -163,9 +163,84 @@ exports.sendGameCreatedEmail = async (email, name, gameTitle) => {
   }
 };
 
+// Send game purchase confirmation email
+exports.sendGamePurchaseEmail = async (email, name, gameTitle, price) => {
+  try {
+    const emailTransporter = await getTransporter();
+    
+    const mailOptions = {
+      from: process.env.EMAIL_USER || 'noreply@gameverse.com',
+      to: email,
+      subject: '🎮 Game Purchase Confirmation - GameVerse',
+      html: `
+        <h2>Purchase Confirmed, ${name}!</h2>
+        <p>Thank you for purchasing a game on GameVerse.</p>
+        
+        <div style="background: #f0f0f0; padding: 15px; border-radius: 5px;">
+          <p><strong>Game:</strong> ${gameTitle}</p>
+          <p><strong>Price:</strong> $${price.toFixed(2)}</p>
+          <p><strong>Status:</strong> ✅ Permanently Owned</p>
+        </div>
+        
+        <p>You can now access this game anytime from your <a href="${process.env.CLIENT_URL}/dashboard">dashboard</a>.</p>
+        <p>Enjoy your new game!</p>
+        <hr>
+        <p><small>GameVerse Team</small></p>
+      `,
+    };
+
+    const info = await emailTransporter.sendMail(mailOptions);
+    console.log('Purchase confirmation email sent:', info.messageId);
+    return info;
+  } catch (error) {
+    if (process.env.NODE_ENV !== 'test') {
+      console.error('Error sending purchase email:', error);
+    }
+  }
+};
+
+// Send game rental confirmation email
+exports.sendGameRentalEmail = async (email, name, gameTitle, price, expiryDate) => {
+  try {
+    const emailTransporter = await getTransporter();
+    
+    const mailOptions = {
+      from: process.env.EMAIL_USER || 'noreply@gameverse.com',
+      to: email,
+      subject: '🎮 Game Rental Confirmation - GameVerse',
+      html: `
+        <h2>Rental Confirmed, ${name}!</h2>
+        <p>Your game rental has been confirmed on GameVerse.</p>
+        
+        <div style="background: #f0f0f0; padding: 15px; border-radius: 5px;">
+          <p><strong>Game:</strong> ${gameTitle}</p>
+          <p><strong>Price:</strong> $${price.toFixed(2)}</p>
+          <p><strong>Expires:</strong> ${expiryDate.toLocaleDateString()} at ${expiryDate.toLocaleTimeString()}</p>
+          <p><strong>Duration:</strong> 7 Days</p>
+        </div>
+        
+        <p>You can access this game from your <a href="${process.env.CLIENT_URL}/dashboard">dashboard</a>.</p>
+        <p>After the rental period expires, you will no longer have access to this game.</p>
+        <hr>
+        <p><small>GameVerse Team</small></p>
+      `,
+    };
+
+    const info = await emailTransporter.sendMail(mailOptions);
+    console.log('Rental confirmation email sent:', info.messageId);
+    return info;
+  } catch (error) {
+    if (process.env.NODE_ENV !== 'test') {
+      console.error('Error sending rental email:', error);
+    }
+  }
+};
+
 module.exports = {
   sendWelcomeEmail: exports.sendWelcomeEmail,
   sendPasswordChangedEmail: exports.sendPasswordChangedEmail,
   sendPasswordResetEmail: exports.sendPasswordResetEmail,
   sendGameCreatedEmail: exports.sendGameCreatedEmail,
+  sendGamePurchaseEmail: exports.sendGamePurchaseEmail,
+  sendGameRentalEmail: exports.sendGameRentalEmail,
 };
