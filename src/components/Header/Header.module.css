@@ -3,3 +3,90 @@
   align-items: center;
   gap: 12px;
 }
+
+.authBlock {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+}
+
+.link {
+  color: var(--primary);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.link:hover {
+  text-decoration: underline;
+}
+
+.authBtn {
+  color: var(--primary);
+  text-decoration: none;
+  font-weight: 600;
+  padding: 8px 12px;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.authBtn:hover {
+  background: rgba(255, 69, 0, 0.1);
+}
+
+.authBtnPrimary {
+  background: var(--primary);
+  color: #fff;
+  text-decoration: none;
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.authBtnPrimary:hover {
+  background: darkorange;
+}
+
+.logoutBtn {
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  transition: background 0.2s;
+}
+
+.logoutBtn:hover {
+  background: darkorange;
+}
+
+.welcome {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.avatarLink {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
+
+.headerAvatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--primary);
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.headerAvatar:hover {
+  transform: scale(1.1);
+}
+
