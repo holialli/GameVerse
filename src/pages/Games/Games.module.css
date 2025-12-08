@@ -239,7 +239,9 @@
 }
 
 .editBtn,
-.deleteBtn {
+.deleteBtn,
+.buyBtn,
+.rentBtn {
   flex: 1;
   padding: 8px 12px;
   border: none;
@@ -268,6 +270,36 @@
 .deleteBtn:hover {
   background: #e53935;
   color: white;
+}
+
+.buyBtn {
+  background: rgba(76, 175, 80, 0.1);
+  color: #4caf50;
+}
+
+.buyBtn:hover:not(:disabled) {
+  background: #4caf50;
+  color: white;
+}
+
+.buyBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.rentBtn {
+  background: rgba(255, 152, 0, 0.1);
+  color: #ff9800;
+}
+
+.rentBtn:hover:not(:disabled) {
+  background: #ff9800;
+  color: white;
+}
+
+.rentBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .pagination {

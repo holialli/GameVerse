@@ -24,7 +24,7 @@ exports.register = async (req, res) => {
       return res.status(400).json({ message: 'Passwords do not match' });
     }
 
-    // Check if user exists
+    // Check if user exists by email
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ message: 'Email already registered' });
@@ -54,12 +54,12 @@ exports.register = async (req, res) => {
   }
 };
 
-// Login user
+// Login user by email
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.validatedBody;
 
-    // Find user and include password field
+    // Find user by email
     const user = await User.findOne({ email }).select('+password');
     if (!user) {
       return res.status(401).json({ message: 'Invalid email or password' });

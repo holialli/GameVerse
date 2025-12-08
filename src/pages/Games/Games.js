@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import styles from './Games.module.css';
 import GameForm from '../../components/GameForm/GameForm';
-import { gameAPI } from '../../services/api';
+import { gameAPI, purchaseAPI } from '../../services/api';
+import { useAuth } from '../../contexts/AuthContext';
 
 const Games = () => {
+  const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const [games, setGames] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -18,6 +20,7 @@ const Games = () => {
   const [page, setPage] = useState(parseInt(searchParams.get('page')) || 1);
   const [limit] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
+  const [purchasing, setPurchasing] = useState({});
 
   const genres = [
     'Action', 'Adventure', 'RPG', 'Strategy', 'Simulation',
@@ -72,6 +75,34 @@ const Games = () => {
     }
   };
 
+  const handleBuyGame = async (gameId) => {
+    setPurchasing({ ...purchasing, [gameId]: 'buying' });
+    try {
+      await purchaseAPI.buyGame(gameId);
+      setError('');
+      alert('Game purchased successfully! Check your dashboard.');
+      fetchGames();
+    } catch (err) {
+      setError(err.message || 'Failed to purchase game');
+    } finally {
+      setPurchasing({ ...purchasing, [gameId]: null });
+    }
+  };
+
+  const handleRentGame = async (gameId) => {
+    setPurchasing({ ...purchasing, [gameId]: 'renting' });
+    try {
+      await purchaseAPI.rentGame(gameId);
+      setError('');
+      alert('Game rented successfully! 7-day rental period starts now.');
+      fetchGames();
+    } catch (err) {
+      setError(err.message || 'Failed to rent game');
+    } finally {
+      setPurchasing({ ...purchasing, [gameId]: null });
+    }
+  };
+
   const handleFormSubmit = () => {
     setShowForm(false);
     setEditingGame(null);
@@ -90,16 +121,18 @@ const Games = () => {
   return (
     <div className={styles.container}>
       <div className={styles.header}>
-        <h1>My Games</h1>
-        <button 
-          className={styles.addBtn} 
-          onClick={() => {
-            setShowForm(true);
-            setEditingGame(null);
-          }}
-        >
-          + Add Game
-        </button>
+        <h1>Games</h1>
+        {user?.role === 'admin' && (
+          <button 
+            className={styles.addBtn} 
+            onClick={() => {
+              setShowForm(true);
+              setEditingGame(null);
+            }}
+          >
+            + Add Game
+          </button>
+        )}
       </div>
 
       {showForm && (
@@ -115,14 +148,16 @@ const Games = () => {
               ×
             </button>
             <h2>{editingGame ? 'Edit Game' : 'Add New Game'}</h2>
-            <GameForm 
-              game={editingGame} 
-              onSubmit={handleFormSubmit}
-              onCancel={() => {
-                setShowForm(false);
-                setEditingGame(null);
-              }}
-            />
+            {user?.role === 'admin' && (
+              <GameForm 
+                game={editingGame} 
+                onSubmit={handleFormSubmit}
+                onCancel={() => {
+                  setShowForm(false);
+                  setEditingGame(null);
+                }}
+              />
+            )}
           </div>
         </div>
       )}
@@ -196,15 +231,17 @@ const Games = () => {
       ) : games.length === 0 ? (
         <div className={styles.empty}>
           <p>No games found.</p>
-          <button 
-            className={styles.addBtn}
-            onClick={() => {
-              setShowForm(true);
-              setEditingGame(null);
-            }}
-          >
-            Create your first game
-          </button>
+          {user?.role === 'admin' && (
+            <button 
+              className={styles.addBtn}
+              onClick={() => {
+                setShowForm(true);
+                setEditingGame(null);
+              }}
+            >
+              Create your first game
+            </button>
+          )}
         </div>
       ) : (
         <>
@@ -234,23 +271,42 @@ const Games = () => {
                     ))}
                   </div>
 
-                  <div className={styles.actions}>
-                    <button 
-                      className={styles.editBtn}
-                      onClick={() => {
-                        setEditingGame(game);
-                        setShowForm(true);
-                      }}
-                    >
-                      Edit
-                    </button>
-                    <button 
-                      className={styles.deleteBtn}
-                      onClick={() => handleDeleteGame(game._id)}
-                    >
-                      Delete
-                    </button>
-                  </div>
+                  {user?.role === 'admin' ? (
+                    <div className={styles.actions}>
+                      <button 
+                        className={styles.editBtn}
+                        onClick={() => {
+                          setEditingGame(game);
+                          setShowForm(true);
+                        }}
+                      >
+                        Edit
+                      </button>
+                      <button 
+                        className={styles.deleteBtn}
+                        onClick={() => handleDeleteGame(game._id)}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  ) : (
+                    <div className={styles.actions}>
+                      <button 
+                        className={styles.buyBtn}
+                        onClick={() => handleBuyGame(game._id)}
+                        disabled={purchasing[game._id]}
+                      >
+                        {purchasing[game._id] === 'buying' ? 'Buying...' : `Buy $${game.buyPrice || 9.99}`}
+                      </button>
+                      <button 
+                        className={styles.rentBtn}
+                        onClick={() => handleRentGame(game._id)}
+                        disabled={purchasing[game._id]}
+                      >
+                        {purchasing[game._id] === 'renting' ? 'Renting...' : `Rent $${game.rentPrice || 2.99}/7d`}
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}

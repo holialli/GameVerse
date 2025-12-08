@@ -137,9 +137,6 @@ export const userAPI = {
   getUserProfile: (id) => 
     fetch(`${API_BASE_URL}/users/${id}`, {
       headers: { Authorization: `Bearer ${getToken()}` },
-    }).then(res => {
-      if (!res.ok) return res.json().then(err => { throw err; });
-      return res.json();
     }),
 
   updateProfile: (id, profileData) =>
@@ -193,4 +190,51 @@ export const uploadAPI = {
     });
   },
 };
+
+// Purchase API calls
+export const purchaseAPI = {
+  buyGame: (gameId) =>
+    fetch(`${API_BASE_URL}/purchases/buy`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${getToken()}`,
+      },
+      body: JSON.stringify({ gameId }),
+    }).then(res => {
+      if (!res.ok) return res.json().then(err => { throw err; });
+      return res.json();
+    }),
+
+  rentGame: (gameId) =>
+    fetch(`${API_BASE_URL}/purchases/rent`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${getToken()}`,
+      },
+      body: JSON.stringify({ gameId }),
+    }).then(res => {
+      if (!res.ok) return res.json().then(err => { throw err; });
+      return res.json();
+    }),
+
+  getUserGames: () =>
+    fetch(`${API_BASE_URL}/purchases/my-games`, {
+      headers: { Authorization: `Bearer ${getToken()}` },
+    }).then(res => {
+      if (!res.ok) return res.json().then(err => { throw err; });
+      return res.json();
+    }),
+
+  returnRental: (purchaseId) =>
+    fetch(`${API_BASE_URL}/purchases/${purchaseId}/return`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${getToken()}` },
+    }).then(res => {
+      if (!res.ok) return res.json().then(err => { throw err; });
+      return res.json();
+    }),
+};
+
 

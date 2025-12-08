@@ -1,9 +1,14 @@
 const Game = require('../models/Game');
 
-// Create a game
+// Create a game (ADMIN ONLY)
 exports.createGame = async (req, res) => {
   try {
-    const { title, description, genre, releaseDate, rating, platform, developer } = req.validatedBody;
+    // Check if admin
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Only admins can create games' });
+    }
+
+    const { title, description, genre, releaseDate, rating, platform, developer, buyPrice = 9.99, rentPrice = 2.99 } = req.validatedBody;
 
     const game = await Game.create({
       title,
@@ -13,8 +18,10 @@ exports.createGame = async (req, res) => {
       rating,
       platform,
       developer,
+      buyPrice,
+      rentPrice,
       imageUrl: req.file ? `/public/uploads/${req.file.filename}` : null,
-      createdBy: req.user.id,
+      createdBy: null, // Games belong to admin catalog, not individual users
     });
 
     res.status(201).json({
@@ -85,18 +92,18 @@ exports.getGameById = async (req, res) => {
   }
 };
 
-// Update game
+// Update game (ADMIN ONLY)
 exports.updateGame = async (req, res) => {
   try {
+    // Check if admin
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Only admins can update games' });
+    }
+
     let game = await Game.findById(req.params.id);
 
     if (!game) {
       return res.status(404).json({ message: 'Game not found' });
-    }
-
-    // Check ownership
-    if (game.createdBy.toString() !== req.user.id) {
-      return res.status(403).json({ message: 'Not authorized to update this game' });
     }
 
     const updates = req.validatedBody;
@@ -118,18 +125,18 @@ exports.updateGame = async (req, res) => {
   }
 };
 
-// Delete game
+// Delete game (ADMIN ONLY)
 exports.deleteGame = async (req, res) => {
   try {
+    // Check if admin
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Only admins can delete games' });
+    }
+
     const game = await Game.findById(req.params.id);
 
     if (!game) {
       return res.status(404).json({ message: 'Game not found' });
-    }
-
-    // Check ownership
-    if (game.createdBy.toString() !== req.user.id) {
-      return res.status(403).json({ message: 'Not authorized to delete this game' });
     }
 
     await Game.findByIdAndDelete(req.params.id);

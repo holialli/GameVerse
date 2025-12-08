@@ -78,30 +78,73 @@ exports.changePassword = async (req, res) => {
 exports.getDashboard = async (req, res) => {
   try {
     const userId = req.user.id;
+    const Purchase = require('../models/Purchase');
 
     const user = await User.findById(userId).select('-password');
-    const totalGames = await Game.countDocuments({ createdBy: userId });
-    const recentGames = await Game.find({ createdBy: userId })
-      .sort({ createdAt: -1 })
-      .limit(5);
-
-    const genres = await Game.aggregate([
-      { $match: { createdBy: new mongoose.Types.ObjectId(userId) } },
-      { $group: { _id: '$genre', count: { $sum: 1 } } },
-    ]);
-
-    res.json({
+    
+    // For admin: Show games created/managed
+    // For regular users: Show purchased/rented games
+    let dashboardData = {
       user,
-      stats: {
+      stats: {},
+      purchases: [],
+      rentals: [],
+    };
+
+    if (user.role === 'admin') {
+      // Admin dashboard - show created games statistics
+      const totalGames = await Game.countDocuments();
+      const recentGames = await Game.find()
+        .sort({ createdAt: -1 })
+        .limit(5);
+
+      const genres = await Game.aggregate([
+        { $group: { _id: '$genre', count: { $sum: 1 } } },
+      ]);
+
+      dashboardData.stats = {
         totalGames,
         averageRating:
           recentGames.length > 0
             ? (recentGames.reduce((sum, g) => sum + g.rating, 0) / recentGames.length).toFixed(2)
             : 0,
-      },
-      recentGames,
-      genreBreakdown: genres,
-    });
+      };
+      dashboardData.recentGames = recentGames;
+      dashboardData.genreBreakdown = genres;
+    } else {
+      // Regular user dashboard - show purchases and rentals
+      const purchases = await Purchase.find({
+        userId,
+        type: 'buy',
+        isActive: true,
+      })
+        .populate('gameId')
+        .sort({ createdAt: -1 });
+
+      const rentals = await Purchase.find({
+        userId,
+        type: 'rent',
+        expiryDate: { $gt: new Date() },
+        isActive: true,
+      })
+        .populate('gameId')
+        .sort({ createdAt: -1 });
+
+      const totalSpent = await Purchase.aggregate([
+        { $match: { userId: new mongoose.Types.ObjectId(userId) } },
+        { $group: { _id: null, total: { $sum: '$price' } } },
+      ]);
+
+      dashboardData.stats = {
+        totalPurchased: purchases.length,
+        totalRenting: rentals.length,
+        totalSpent: totalSpent.length > 0 ? totalSpent[0].total : 0,
+      };
+      dashboardData.recentPurchases = purchases.slice(0, 5);
+      dashboardData.activeRentals = rentals;
+    }
+
+    res.json(dashboardData);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
