@@ -34,7 +34,9 @@ jobs:
 
       # 5. Build & Scan Docker Image (Trivy)
       - name: Build Docker Image
-        run: docker build -t gameverse-app:latest .
+        run: |
+          cd server 
+          docker build -t gameverse-app:latest .
 
       - name: Run Trivy Image Scanner
         uses: aquasecurity/trivy-action@master
