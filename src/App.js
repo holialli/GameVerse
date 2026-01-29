@@ -1,4 +1,5 @@
 import { Routes, Route } from 'react-router-dom';
+import { Analytics } from '@vercel/analytics/react';
 import Layout from './components/Layout/Layout';
 import Home from './pages/Home/Home';
 import Genres from './pages/Genres/Genres';
@@ -57,6 +58,7 @@ function App() {
           />
         </Routes>
       </Layout>
+      <Analytics />
     </AuthProvider>
   );
 }
