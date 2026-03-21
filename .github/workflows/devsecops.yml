@@ -5,7 +5,7 @@ on:
     branches: [ main ]
 
 jobs:
-  # PHASE 1: Static Analysis & Security Gate
+# PHASE 1: Automated Security Auditing
   security_validation:
     name: Security Analysis (SCA & Secret Scanning)
     runs-on: ubuntu-latest
@@ -13,12 +13,18 @@ jobs:
       - name: Checkout Source Code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Required for Gitleaks to scan history
+          fetch-depth: 0 
 
       - name: Gitleaks Secret Detection
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # New Step: Install Backend dependencies for Snyk
+      - name: Install Backend Dependencies
+        run: |
+          cd server
+          npm install
 
       - name: Snyk Vulnerability Scan (Backend)
         uses: snyk/actions/node@master
@@ -27,13 +33,16 @@ jobs:
         with:
           args: --file=server/package.json
 
+      # New Step: Install Frontend dependencies for Snyk
+      - name: Install Frontend Dependencies
+        run: npm install
+
       - name: Snyk Vulnerability Scan (Frontend)
         uses: snyk/actions/node@master
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
           args: --file=package.json
-
   # PHASE 2: Containerization & Registry Sync
   build_and_push:
     name: Container Build & Image Scanning
