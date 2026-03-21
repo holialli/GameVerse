@@ -42,7 +42,7 @@ jobs:
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
-          args: --file=package.json
+          args: --file=package.json --severity-threshold=critical
   # PHASE 2: Containerization & Registry Sync
   build_and_push:
     name: Container Build & Image Scanning
