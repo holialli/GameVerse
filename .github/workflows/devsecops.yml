@@ -2,45 +2,111 @@ name: GameVerse DevSecOps Pipeline
 
 on:
   push:
-    branches: [ main ] 
+    branches: [ main ]
 
 jobs:
-  security-gauntlet:
+  # PHASE 1: Static Analysis & Security Gate
+  security_validation:
+    name: Security Analysis (SCA & Secret Scanning)
     runs-on: ubuntu-latest
     steps:
-      # 1. Pull your code into the Virtual Machine
-      - name: Checkout Code
+      - name: Checkout Source Code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 
+          fetch-depth: 0 # Required for Gitleaks to scan history
 
-      # 2. Setup Node.js environment
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      # 3. Gitleaks: Scan for leaked passwords/secrets
-      - name: Run Gitleaks
+      - name: Gitleaks Secret Detection
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # 4. Snyk: Scan for vulnerable libraries (ingredients)
-      - name: Run Snyk to check for vulnerabilities
+      - name: Snyk Vulnerability Scan (Backend)
         uses: snyk/actions/node@master
         env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }} 
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --file=server/package.json
 
-      # 5. Build & Scan Docker Image (Trivy)
-      - name: Build Docker Image
-        run: |
-          cd server 
-          docker build -t gameverse-app:latest .
+      - name: Snyk Vulnerability Scan (Frontend)
+        uses: snyk/actions/node@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --file=package.json
 
-      - name: Run Trivy Image Scanner
+  # PHASE 2: Containerization & Registry Sync
+  build_and_push:
+    name: Container Build & Image Scanning
+    needs: security_validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Docker Hub Authentication
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # BACKEND: Build, Scan, and Push
+      - name: Build Backend Image
+        run: docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/gameverse-backend:latest ./server
+
+      - name: Trivy CVE Scan (Backend Image)
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: 'gameverse-app:latest'
+          image-ref: '${{ secrets.DOCKERHUB_USERNAME }}/gameverse-backend:latest'
           format: 'table'
           severity: 'CRITICAL,HIGH'
+
+      - name: Push Backend to Registry
+        run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/gameverse-backend:latest
+
+      # FRONTEND: Build, Scan, and Push
+      - name: Build Frontend Image
+        run: docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/gameverse-frontend:latest .
+
+      - name: Trivy CVE Scan (Frontend Image)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: '${{ secrets.DOCKERHUB_USERNAME }}/gameverse-frontend:latest'
+          format: 'table'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Push Frontend to Registry
+        run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/gameverse-frontend:latest
+
+  # PHASE 3: Automated Deployment via AWS SSM 
+  orchestrated_deployment:
+    name: AWS Production Deployment
+    needs: build_and_push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configure Cloud Identity
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-south-1 # Mumbai Region
+
+      - name: Execute Remote Deployment Script (SSM)
+        uses: peterkimzz/aws-ssm-send-command@v1.1.1
+        with:
+          instance-ids: "i-0d474f7b919b56b3d"
+          comment: "Automated rolling update for GameVerse Production"
+          working-directory: "/home/ubuntu"
+          command: |
+            # Pulling updated images from registry
+            sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/gameverse-backend:latest
+            sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/gameverse-frontend:latest
+            
+            # Atomic container rotation
+            sudo docker rm -f gv-api gv-ui || true
+            
+            # Launching production instances with environment injection
+            sudo docker run -d --name gv-api --env-file /home/ubuntu/backend.env -p 5000:5000 ${{ secrets.DOCKERHUB_USERNAME }}/gameverse-backend:latest
+            sudo docker run -d --name gv-ui --env-file /home/ubuntu/frontend.env -p 80:3000 ${{ secrets.DOCKERHUB_USERNAME }}/gameverse-frontend:latest
+            
+            # Post-deployment image hygiene
+            sudo docker image prune -f
