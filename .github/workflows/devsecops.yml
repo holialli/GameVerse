@@ -87,7 +87,7 @@ jobs:
         run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/gameverse-frontend:latest
 
   # PHASE 3: Automated Deployment via AWS SSM 
-  orchestrated_deployment:
+orchestrated_deployment:
     name: AWS Production Deployment
     needs: build_and_push
     runs-on: ubuntu-latest
@@ -97,25 +97,28 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ap-south-1 # Mumbai Region
+          aws-region: ap-south-1
 
       - name: Execute Remote Deployment Script (SSM)
         uses: peterkimzz/aws-ssm-send-command@v1.1.1
         with:
           instance-ids: "i-0d474f7b919b56b3d"
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-south-1
           comment: "Automated rolling update for GameVerse Production"
           working-directory: "/home/ubuntu"
           command: |
-            # Pulling updated images from registry
+            # Syncing latest images from registry
             sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/gameverse-backend:latest
             sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/gameverse-frontend:latest
             
             # Atomic container rotation
             sudo docker rm -f gv-api gv-ui || true
             
-            # Launching production instances with environment injection
+            # Runtime execution with env injection
             sudo docker run -d --name gv-api --env-file /home/ubuntu/backend.env -p 5000:5000 ${{ secrets.DOCKERHUB_USERNAME }}/gameverse-backend:latest
             sudo docker run -d --name gv-ui --env-file /home/ubuntu/frontend.env -p 80:3000 ${{ secrets.DOCKERHUB_USERNAME }}/gameverse-frontend:latest
             
-            # Post-deployment image hygiene
+            # Post-deployment hygiene
             sudo docker image prune -f
