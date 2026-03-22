@@ -1,81 +1,83 @@
-﻿# GameVerse 🎮
+﻿# GameVerse Platform
+## Enterprise-Grade MERN Infrastructure and Security
 
-![Security Pipeline](https://github.com/holialli/GameVerse/actions/workflows/devsecops.yml/badge.svg)
+![Infrastructure](https://img.shields.io/badge/Infrastructure-Terraform-623CE4)
+![Cloud](https://img.shields.io/badge/Cloud-AWS-232F3E)
+![Security](https://img.shields.io/badge/Security-Cloudflare_Strict_SSL-F38020)
 
-*A high-performance, security-hardened MERN application for modern gamers.*
-
----
-
-### **🛡️ DevSecOps & Security Automation**
-This project is guarded by a **Security-First CI/CD Pipeline**. Instead of traditional manual deployment, GameVerse uses automated "Security Gates" to ensure 100% code integrity before it ever touches the server.
-
-* **Secret Analysis (Gitleaks):** Scans the entire repository history to block leaked API keys or credentials.
-* **Dependency Audit (Snyk):** Automatically detects and blocks vulnerable NPM libraries (CVEs).
-* **Container Hardening (Trivy):** Scans Docker images for OS-level vulnerabilities.
-* **Automated CD:** Triggers production deployment via Render hooks only after passing the security gauntlet.
-
-
+GameVerse is a high-performance gaming platform built on the MERN stack and deployed using modern DevSecOps methodologies. This repository focuses on infrastructure-as-code (IaC), network hardening, and automated security orchestration to maintain a production-ready environment.
 
 ---
 
-### **🚀 Technical Stack**
-| Category | Technologies |
+### System Architecture and DevOps
+The deployment architecture utilizes a multi-layered defense strategy to ensure high availability and data integrity.
+
+* **Infrastructure as Code (IaC):** Environment provisioning is fully automated via Terraform to ensure reproducible, version-controlled AWS resources.
+* **Edge Security:** Integration with Cloudflare provides Web Application Firewall (WAF) capabilities and global DDoS mitigation.
+* **Encryption:** Implementation of Full (Strict) End-to-End SSL encryption utilizing Cloudflare Origin Certificates and Nginx SSL termination.
+* **Network Hardening:** AWS Security Groups follow a Zero-Trust model, restricting all inbound traffic exclusively to verified Cloudflare IPv4 ranges.
+* **Zero-Key Management:** Administrative access is conducted through AWS Systems Manager (SSM) Session Manager, eliminating the need for static SSH keys and reducing the identity attack surface.
+
+---
+
+### DevSecOps Pipeline
+The CI/CD workflow, powered by GitHub Actions, incorporates rigorous security gates to validate code and container integrity before deployment.
+
+* **Static Analysis (SAST):** Gitleaks integration to identify and block credential leakage within the repository history.
+* **Software Composition Analysis (SCA):** Snyk automated scanning to detect and remediate vulnerabilities in NPM dependencies (CVEs).
+* **Container Security:** Trivy scans performed on Docker images to identify OS-level vulnerabilities during the build phase.
+* **Automated Deployment:** Verified code is deployed to the production environment only after successfully passing all security and build stages.
+
+---
+
+### Technical Specification
+| Category | Component |
 | :--- | :--- |
-| **Frontend** | React.js, Context API, Tailwind CSS, Vercel Analytics |
+| **Frontend** | React.js, Context API, Tailwind CSS |
 | **Backend** | Node.js, Express.js |
-| **Database** | MongoDB Atlas (Cloud) |
-| **AI** | Google Generative AI (Gemini Integration) |
-| **DevOps** | Docker, GitHub Actions, Snyk, Gitleaks, Trivy |
+| **Database** | MongoDB Atlas (Distributed Cloud Cluster) |
+| **Proxy / Web Server** | Nginx (Reverse Proxy with SSL Termination) |
+| **Infrastructure** | AWS (EC2, EIP, IAM, SSM, Security Groups) |
+| **Provisioning** | Terraform (HCL) |
 
 ---
 
-### **🔐 Core Security Features**
-* **JWT Rotation:** Implementation of secure access/refresh token logic for session management.
-* **Rate Limiting:** Protects endpoints from Brute Force and DDoS attacks.
-* **Environment Isolation:** Strict `.env` management to separate development and production secrets.
-* **Validated Middleware:** Custom Express middleware for strict request validation and error handling.
+### Core Security Implementation
+* **JWT Lifecycle Management:** Secure, HTTP-only cookie-based token rotation for robust session persistence.
+* **Layer 7 Protection:** Express-based rate limiting and request validation middleware to mitigate automated threats and brute-force attempts.
+* **Identity and Access Management (IAM):** Utilization of IAM Instance Profiles following the Principle of Least Privilege (PoLP).
+* **Secret Isolation:** Separation of production secrets using GitHub Actions Secrets and encrypted server-side environment configurations.
 
 ---
 
-### **📂 Project Architecture**
+### Deployment and Local Configuration
+To initialize the project in a development environment:
 
-**Frontend (Client)**
-* `src/pages` - Dynamic UI (Dashboard, News, Gallery, Profile)
-* `src/contexts` - Secure Auth & Global State
-* `src/services` - External API & Firebase Integration
-
-**Backend (Server)**
-* `server/routes` - RESTful API Endpoints
-* `server/middleware` - Security & Auth Filters
-* `server/models` - Optimized MongoDB Data Schemas
-
----
-
-### **🧪 Local Development**
-To set up this project locally for testing or contribution:
-
-1.  **Clone the Repo:**
+1.  **Repository Initialization**
     ```bash
-    git clone [https://github.com/ali13/GameVerse](https://github.com/ali13/GameVerse)
+    git clone [https://github.com/holialli/GameVerse](https://github.com/holialli/GameVerse)
     ```
-2.  **Install Ingredients:**
+2.  **Dependency Installation**
     ```bash
     npm install && cd server && npm install
     ```
-3.  **Run Security Scan:**
+3.  **Security Validation**
     ```bash
-    # Ensure you have your SNYK_TOKEN set
+    # Requires Snyk CLI installation and authentication
     snyk test
     ```
-4.  **Start Dev Server:**
+4.  **Environment Execution**
     ```bash
-    # Terminal 1
+    # Start Backend Services
     cd server && npm run dev
-    # Terminal 2
+    # Start Frontend Services
     npm start
     ```
 
 ---
 
-### **✉️ Contact & Support**
-Developed by **Ali Ahmad**. As a **Cybersecurity student**, I prioritize data safety and automated reliability. For technical inquiries regarding the DevSecOps architecture, feel free to open an issue or reach out.
+### Professional Contact
+**Ali Ahmad**  
+mail : ali1305123456789@gmail.com
+
+Technical inquiries regarding the infrastructure architecture or DevSecOps implementation may be directed through GitHub Issues.
