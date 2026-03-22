@@ -2,7 +2,13 @@ name: GameVerse DevSecOps Pipeline
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
+    paths:
+      - 'server/**'
+      - 'src/**'
+      - 'public/**'
+      - 'package.json'
 
 jobs:
 # PHASE 1: Automated Security Auditing
