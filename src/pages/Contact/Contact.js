@@ -1,101 +1,145 @@
-import React, { useState } from 'react';
-import { db } from '../../services/firebaseConfig'; 
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import React, { useCallback, useEffect, useState } from 'react';
+import axiosInstance from '../../lib/axios';
 import styles from './Contact.module.css';
+import { useAuth } from '../../contexts/AuthContext';
+
 const Contact = () => {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [message, setMessage] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitStatus, setSubmitStatus] = useState(null); // 'success' or 'error'
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    subject: 'Bug Report',
+    message: '',
+  });
+  const [status, setStatus] = useState('idle');
+  const [error, setError] = useState('');
+  const [tickets, setTickets] = useState([]);
+  const [loadingTickets, setLoadingTickets] = useState(false);
+  const { isAuthenticated } = useAuth();
+
+  const handleChange = (field, value) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsSubmitting(true);
-    setSubmitStatus(null);
+    setStatus('sending');
+    setError('');
 
     try {
-      // Add a new document to the 'messages' collection in Firestore 
-      await addDoc(collection(db, 'messages'), {
-        name: name,
-        email: email,
-        message: message,
-        submittedAt: serverTimestamp(),
-      });
-
-      setSubmitStatus('success');
-      // Clear form
-      setName('');
-      setEmail('');
-      setMessage('');
-    } catch (error) {
-      console.error('Error adding document: ', error);
-      setSubmitStatus('error');
-    } finally {
-      setIsSubmitting(false);
+      await axiosInstance.post('/contact', formData);
+      setStatus('success');
+      setFormData({ name: '', email: '', subject: 'Bug Report', message: '' });
+    } catch (err) {
+      setStatus('error');
+      setError(err?.response?.data?.error || 'Could not send your message. Please try again.');
     }
   };
 
-  return (
-    <section className="section">
-      <div className="section-header">
-        <h1 className="section-title">Contact Us</h1>
-        <p className="section-desc">Questions, feedback, or collaborations? We would love to hear from you.</p>
-      </div>
+  const loadMyTickets = useCallback(async () => {
+    if (!isAuthenticated) return;
 
-      <div className={styles.contactGrid}>
-        <div className={`${styles.contactCard} ${styles.panel}`}>
-          <h2 className="card-title">Send a Message</h2>
-          <form className={styles.formGrid} onSubmit={handleSubmit}>
-            <div className={styles.formRow}>
-              <label htmlFor="name">Name</label>
-              <input
-                className={styles.input}
-                type="text"
-                id="name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Your name"
-                required
-              />
-            </div>
-            <div className={styles.formRow}>
-              <label htmlFor="email">Email</label>
-              <input
-                className={styles.input}
-                type="email"
-                id="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
-                required
-              />
-            </div>
-            <div className={styles.formRow}>
-              <label htmlFor="message">Message</label>
-              <textarea
-                id="message"
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                placeholder="Tell us what’s on your mind"
-                required
-              ></textarea>
-            </div>
-            <div className={styles.formRow}>
-              <button className="button primary" type="submit" disabled={isSubmitting}>
-                {isSubmitting ? 'Sending...' : 'Send Message'}
-              </button>
-            </div>
-            {submitStatus === 'success' && (
-              <p className={styles.successMsg}>Message sent! Thank you.</p>
-            )}
-            {submitStatus === 'error' && (
-              <p className={styles.errorMsg}>Error: Could not send message.</p>
-            )}
-          </form>
-        </div>
-        
-      </div>
+    try {
+      setLoadingTickets(true);
+      const res = await axiosInstance.get('/contact/my');
+      setTickets(Array.isArray(res?.data?.tickets) ? res.data.tickets : []);
+    } catch (err) {
+      setError(err?.response?.data?.error || 'Could not load your ticket history.');
+    } finally {
+      setLoadingTickets(false);
+    }
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      loadMyTickets();
+    }
+  }, [isAuthenticated, loadMyTickets]);
+
+  return (
+    <section className={styles.page}>
+      <header className={styles.header}>
+        <h1>Contact & Feedback</h1>
+        <p>Report issues, request features, or share complaints for admin review.</p>
+      </header>
+
+      <form className={styles.form} onSubmit={handleSubmit}>
+        {status === 'success' && <div className={styles.success}>Message sent successfully. Admin will review it soon.</div>}
+        {status === 'error' && <div className={styles.error}>{error}</div>}
+
+        <label>
+          Name
+          <input
+            type="text"
+            value={formData.name}
+            onChange={(e) => handleChange('name', e.target.value)}
+            required
+          />
+        </label>
+
+        <label>
+          Email
+          <input
+            type="email"
+            value={formData.email}
+            onChange={(e) => handleChange('email', e.target.value)}
+            required
+          />
+        </label>
+
+        <label>
+          Subject
+          <select value={formData.subject} onChange={(e) => handleChange('subject', e.target.value)}>
+            <option value="Bug Report">Bug Report</option>
+            <option value="Game Missing">Game Missing</option>
+            <option value="Feature Request">Feature Request</option>
+            <option value="Other">Other</option>
+          </select>
+        </label>
+
+        <label>
+          Message
+          <textarea
+            value={formData.message}
+            onChange={(e) => handleChange('message', e.target.value)}
+            rows={5}
+            required
+          />
+        </label>
+
+        <button type="submit" disabled={status === 'sending'}>
+          {status === 'sending' ? 'Sending...' : 'Submit'}
+        </button>
+      </form>
+
+      {isAuthenticated ? (
+        <section className={styles.ticketSection}>
+          <div className={styles.ticketHeader}>
+            <h2>Your Complaints & Feedback</h2>
+            <button type="button" onClick={loadMyTickets} disabled={loadingTickets}>
+              {loadingTickets ? 'Loading...' : 'Refresh'}
+            </button>
+          </div>
+
+          {tickets.length === 0 ? (
+            <p className={styles.ticketEmpty}>No submitted tickets yet.</p>
+          ) : (
+            <ul className={styles.ticketList}>
+              {tickets.map((ticket) => (
+                <li key={ticket._id} className={styles.ticketItem}>
+                  <div className={styles.ticketTop}>
+                    <strong>{ticket.subject || 'Other'}</strong>
+                    <span className={ticket.status === 'resolved' ? styles.resolved : styles.pending}>
+                      {ticket.status}
+                    </span>
+                  </div>
+                  <p>{ticket.message}</p>
+                  {ticket.resolution ? <p className={styles.resolution}>Resolution: {ticket.resolution}</p> : null}
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      ) : null}
     </section>
   );
 };

@@ -6,6 +6,7 @@ import { useAuth } from '../../contexts/AuthContext';
 
 const Header = () => {
   const { isAuthenticated, user, logout } = useAuth();
+  const isAdmin = user?.role === 'admin';
 
   return (
     // Use the .site-header class from global base.css
@@ -17,15 +18,18 @@ const Header = () => {
         </Link>
         <nav className="primary-nav" aria-label="Primary">
           <ul className="nav-list">
-            {isAuthenticated && <li><NavLink to="/dashboard">Dashboard</NavLink></li>}
-            <li><NavLink to="/">Home</NavLink></li>
-            {isAuthenticated && <li><NavLink to="/games">Games</NavLink></li>}
-            <li><NavLink to="/genres">Genres</NavLink></li>
-            <li><NavLink to="/popular">Popular</NavLink></li>
+            <li><NavLink to="/">{isAuthenticated ? 'Dashboard' : 'Home'}</NavLink></li>
             <li><NavLink to="/news">News</NavLink></li>
-            <li><NavLink to="/events">Events</NavLink></li>
-            <li><NavLink to="/gallery">Gallery</NavLink></li>
-            {user?.role !== 'admin' && <li><NavLink to="/contact">Contact</NavLink></li>}
+
+            {isAuthenticated && !isAdmin && <li><NavLink to="/games">Games</NavLink></li>}
+            {isAuthenticated && !isAdmin && <li><NavLink to="/discovery">Discover</NavLink></li>}
+            {isAuthenticated && !isAdmin && <li><NavLink to="/compatibility">Compatibility</NavLink></li>}
+            {isAuthenticated && !isAdmin && <li><NavLink to="/events">Events</NavLink></li>}
+            {isAuthenticated && !isAdmin && <li><NavLink to="/gallery">Gallery</NavLink></li>}
+            {isAuthenticated && !isAdmin && <li><NavLink to="/contact">Contact</NavLink></li>}
+
+            {isAuthenticated && isAdmin && <li><NavLink to="/admin">Admin Review</NavLink></li>}
+
             {isAuthenticated && <li><NavLink to="/profile">Profile</NavLink></li>}
           </ul>
         </nav>

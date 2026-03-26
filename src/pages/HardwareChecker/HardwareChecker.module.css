@@ -1,0 +1,115 @@
+.page {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 2rem 1rem 3rem;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 2rem;
+}
+
+.header p {
+  color: var(--muted);
+  margin-top: 0.5rem;
+}
+
+.form {
+  margin-top: 1rem;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(220px, 1fr));
+  gap: 0.8rem;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1rem;
+}
+
+.form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  color: var(--text);
+  font-size: 0.95rem;
+}
+
+.form select,
+.form input {
+  background: color-mix(in srgb, var(--bg-elev) 80%, var(--bg));
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.65rem 0.75rem;
+}
+
+.form button {
+  grid-column: 1 / -1;
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+  color: #071223;
+  border: 0;
+  border-radius: 9px;
+  padding: 0.8rem 1rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.form button:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.result {
+  margin-top: 1rem;
+  border-radius: 12px;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  background: var(--bg-elev);
+}
+
+.result h2,
+.result h3 {
+  color: var(--text);
+}
+
+.result p,
+.result li {
+  color: var(--muted);
+}
+
+.emptyHint {
+  margin-top: 0.9rem;
+  color: var(--muted);
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  padding: 0.75rem;
+}
+
+.statusGreen {
+  border-color: color-mix(in srgb, var(--success) 65%, var(--border));
+  background: color-mix(in srgb, var(--success) 14%, var(--bg-elev));
+}
+
+.statusYellow {
+  border-color: color-mix(in srgb, var(--warning) 60%, var(--border));
+  background: color-mix(in srgb, var(--warning) 14%, var(--bg-elev));
+}
+
+.statusRed {
+  border-color: color-mix(in srgb, var(--danger) 65%, var(--border));
+  background: color-mix(in srgb, var(--danger) 14%, var(--bg-elev));
+}
+
+.error {
+  margin-top: 1rem;
+  color: #ffc7d1;
+  border: 1px solid #6b2e3d;
+  background: #2d151b;
+  border-radius: 10px;
+  padding: 0.7rem 0.85rem;
+}
+
+@media (max-width: 700px) {
+  .form {
+    grid-template-columns: 1fr;
+  }
+}

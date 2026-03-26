@@ -1,0 +1,319 @@
+.page {
+  max-width: 1220px;
+  margin: 0 auto;
+  padding: 1.4rem 1rem 2.8rem;
+}
+
+.hero {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--primary) 22%, transparent), color-mix(in srgb, var(--accent) 18%, transparent));
+  padding: 1rem 1.1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.hero h1 {
+  margin: 0;
+}
+
+.hero p {
+  margin: 0.4rem 0 0;
+  color: var(--muted);
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(150px, 1fr));
+  gap: 0.7rem;
+  margin-bottom: 1rem;
+}
+
+.card,
+.panel {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-elev);
+}
+
+.card {
+  padding: 0.9rem;
+  min-height: 96px;
+}
+
+.card h3 {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.card p {
+  margin: 0.4rem 0 0;
+  color: var(--text);
+  font-size: 1.3rem;
+  font-weight: 800;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(320px, 1fr));
+  gap: 0.8rem;
+}
+
+.panel {
+  padding: 1rem;
+}
+
+.panelWide {
+  grid-column: 1 / -1;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-elev);
+}
+
+.panel h2 {
+  margin: 0;
+  color: var(--text);
+  font-size: 1rem;
+}
+
+.empty {
+  color: var(--muted);
+}
+
+.table {
+  margin-top: 0.8rem;
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th,
+.table td {
+  text-align: left;
+  padding: 0.55rem 0.4rem;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  font-size: 0.88rem;
+}
+
+.actions {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.actions button,
+.ticket button {
+  border: 0;
+  border-radius: 8px;
+  padding: 0.38rem 0.52rem;
+  background: linear-gradient(90deg, var(--primary), var(--accent));
+  color: #04131b;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.primaryBtn {
+  border: 0;
+  border-radius: 10px;
+  background: linear-gradient(90deg, var(--primary), var(--accent));
+  color: #08131f;
+  font-weight: 700;
+  padding: 0.65rem 0.85rem;
+  cursor: pointer;
+}
+
+.inlineControls {
+  margin-top: 0.6rem;
+  display: flex;
+  gap: 0.45rem;
+}
+
+.tabBtn,
+.tabActive {
+  border-radius: 999px;
+  padding: 0.3rem 0.7rem;
+  border: 1px solid var(--border);
+  cursor: pointer;
+}
+
+.tabBtn {
+  background: color-mix(in srgb, var(--bg-elev) 80%, var(--bg));
+  color: var(--muted);
+}
+
+.tabActive {
+  background: linear-gradient(90deg, var(--primary), var(--accent));
+  color: #08131f;
+  font-weight: 700;
+}
+
+.resolvedTag {
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--success) 70%, var(--border));
+  color: var(--success);
+  padding: 0.2rem 0.55rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.ticketList {
+  list-style: none;
+  padding: 0;
+  margin: 0.8rem 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.ticket {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.65rem;
+  display: flex;
+  justify-content: space-between;
+  gap: 0.8rem;
+  align-items: flex-start;
+}
+
+.ticket p {
+  margin: 0.35rem 0;
+  color: var(--muted);
+}
+
+.ticket small {
+  color: var(--muted);
+}
+
+.resolutionNote {
+  margin-top: 0.45rem;
+  color: var(--text);
+  font-size: 0.86rem;
+  border-left: 2px solid var(--primary);
+  padding-left: 0.5rem;
+}
+
+.resolutionBox {
+  margin-top: 0.55rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.resolutionBox textarea {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--bg-elev) 80%, var(--bg));
+  color: var(--text);
+  padding: 0.55rem;
+  font-family: inherit;
+}
+
+.resolutionActions {
+  display: flex;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.ghostBtn {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.38rem 0.52rem;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.state {
+  padding: 2rem;
+  text-align: center;
+  color: var(--muted);
+}
+
+.error {
+  margin-bottom: 0.8rem;
+  border: 1px solid color-mix(in srgb, var(--danger) 70%, var(--border));
+  background: color-mix(in srgb, var(--danger) 18%, transparent);
+  color: #ffd8d7;
+  border-radius: 10px;
+  padding: 0.65rem 0.75rem;
+}
+
+.announcementBox {
+  margin-top: 0.7rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.announcementBox textarea {
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--bg-elev) 75%, var(--bg));
+  color: var(--text);
+  padding: 0.6rem 0.7rem;
+  font-family: inherit;
+}
+
+.announcementBox button {
+  align-self: flex-start;
+  border: 0;
+  border-radius: 9px;
+  background: linear-gradient(90deg, var(--primary), var(--accent));
+  color: #08131f;
+  font-weight: 700;
+  padding: 0.55rem 0.75rem;
+  cursor: pointer;
+}
+
+.metaText {
+  color: var(--muted);
+  margin-top: 0.8rem;
+}
+
+.playerList,
+.auditList {
+  list-style: none;
+  padding: 0;
+  margin: 0.75rem 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.playerList li,
+.auditList li {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--bg-elev) 80%, var(--bg));
+  padding: 0.55rem 0.65rem;
+  display: flex;
+  justify-content: space-between;
+  gap: 0.7rem;
+  align-items: center;
+}
+
+.auditList li p {
+  margin: 0.2rem 0 0;
+  color: var(--muted);
+}
+
+@media (max-width: 900px) {
+  .hero {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .stats {
+    grid-template-columns: repeat(2, minmax(140px, 1fr));
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}

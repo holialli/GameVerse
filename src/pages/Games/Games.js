@@ -1,341 +1,199 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import styles from './Games.module.css';
-import GameForm from '../../components/GameForm/GameForm';
-import { gameAPI, purchaseAPI } from '../../services/api';
+import { gameAPI, userAPI } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 
 const Games = () => {
   const { user } = useAuth();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [search, setSearch] = useState('elden ring');
+  const [selectedGenre, setSelectedGenre] = useState('all');
+  const [selectedPlatform, setSelectedPlatform] = useState('all');
   const [games, setGames] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [savingId, setSavingId] = useState(null);
   const [error, setError] = useState('');
-  const [showForm, setShowForm] = useState(false);
-  const [editingGame, setEditingGame] = useState(null);
-  const [search, setSearch] = useState(searchParams.get('search') || '');
-  const [genre, setGenre] = useState(searchParams.get('genre') || '');
-  const [platform, setPlatform] = useState(searchParams.get('platform') || '');
-  const [sort, setSort] = useState(searchParams.get('sort') || '-createdAt');
-  const [page, setPage] = useState(parseInt(searchParams.get('page')) || 1);
-  const [limit] = useState(10);
-  const [totalPages, setTotalPages] = useState(1);
-  const [purchasing, setPurchasing] = useState({});
+  const [message, setMessage] = useState('');
 
-  const genres = [
-    'Action', 'Adventure', 'RPG', 'Strategy', 'Simulation',
-    'Puzzle', 'Sports', 'Horror', 'Indie', 'FPS'
-  ];
-  const platforms = ['PC', 'PlayStation', 'Xbox', 'Nintendo', 'Mobile'];
+  const runSearch = useCallback(async (term = search) => {
+    const query = (term || '').trim();
 
-  useEffect(() => {
-    const params = {};
-    if (search) params.search = search;
-    if (genre) params.genre = genre;
-    if (platform) params.platform = platform;
-    if (sort) params.sort = sort;
-    params.page = page;
-    params.limit = limit;
-    setSearchParams(params);
-  }, [search, genre, platform, sort, page, limit, setSearchParams]);
-
-  const fetchGames = useCallback(async () => {
     setLoading(true);
     setError('');
+    setMessage('');
+
     try {
-      const response = await gameAPI.getGames({
-        search,
-        genre,
-        platform,
-        sort,
-        page,
-        limit
-      });
-      setGames(response.games || []);
-      setTotalPages(response.totalPages || 1);
+      const response = await gameAPI.getGames({ search: query, page: 1 });
+      setGames(Array.isArray(response.games) ? response.games : []);
     } catch (err) {
-      setError(err.message || 'Failed to load games');
+      setError(err.message || 'Failed to load global game radar');
     } finally {
       setLoading(false);
     }
-  }, [search, genre, platform, sort, page, limit]);
+  }, [search]);
 
   useEffect(() => {
-    fetchGames();
-  }, [fetchGames]);
-
-  const handleDeleteGame = async (gameId) => {
-    if (!window.confirm('Are you sure you want to delete this game?')) return;
-    
-    try {
-      await gameAPI.deleteGame(gameId);
-      setGames(games.filter(g => g._id !== gameId));
-    } catch (err) {
-      setError(err.message || 'Failed to delete game');
+    if (user?.role !== 'admin') {
+      runSearch('');
     }
-  };
+  }, [user?.role, runSearch]);
 
-  const handleBuyGame = async (gameId) => {
-    setPurchasing({ ...purchasing, [gameId]: 'buying' });
+  const genres = useMemo(() => {
+    const set = new Set(games.map((g) => g.genre).filter(Boolean));
+    return ['all', ...Array.from(set).sort((a, b) => a.localeCompare(b))];
+  }, [games]);
+
+  const platforms = useMemo(() => {
+    const set = new Set();
+    games.forEach((g) => (g.platforms || []).forEach((p) => set.add(p)));
+    return ['all', ...Array.from(set).sort((a, b) => a.localeCompare(b))];
+  }, [games]);
+
+  const filteredGames = useMemo(() => games
+    .filter((game) => {
+      const genreMatch = selectedGenre === 'all' || game.genre === selectedGenre;
+      const platformMatch = selectedPlatform === 'all' || (game.platforms || []).includes(selectedPlatform);
+      const hasCoreMetadata = Boolean(game.title && game.owner && game.coverUrl && Number.isFinite(Number(game.rating)) && Number(game.rating) > 0);
+      return genreMatch && platformMatch && hasCoreMetadata;
+    })
+    .sort((a, b) => {
+      const userDelta = Number(b.usersOverall || 0) - Number(a.usersOverall || 0);
+      if (userDelta !== 0) return userDelta;
+      return Number(b.popularityScore || 0) - Number(a.popularityScore || 0);
+    }), [games, selectedGenre, selectedPlatform]);
+
+  const addToList = async (game, status) => {
     try {
-      await purchaseAPI.buyGame(gameId);
+      setSavingId(`${game.rawgId}-${status}`);
       setError('');
-      alert('Game purchased successfully! Check your dashboard.');
-      fetchGames();
+
+      await userAPI.addOrUpdateLibraryGame({
+        rawgId: game.rawgId,
+        rawgSlug: game.rawgSlug,
+        title: game.title,
+        coverUrl: game.coverUrl,
+        status,
+      });
+
+      setMessage(`${game.title} added to ${status}.`);
     } catch (err) {
-      setError(err.message || 'Failed to purchase game');
+      setError(err.message || `Could not add ${game.title}`);
     } finally {
-      setPurchasing({ ...purchasing, [gameId]: null });
+      setSavingId(null);
     }
   };
 
-  const handleRentGame = async (gameId) => {
-    setPurchasing({ ...purchasing, [gameId]: 'renting' });
-    try {
-      await purchaseAPI.rentGame(gameId);
-      setError('');
-      alert('Game rented successfully! 7-day rental period starts now.');
-      fetchGames();
-    } catch (err) {
-      setError(err.message || 'Failed to rent game');
-    } finally {
-      setPurchasing({ ...purchasing, [gameId]: null });
-    }
-  };
-
-  const handleFormSubmit = () => {
-    setShowForm(false);
-    setEditingGame(null);
-    setPage(1);
-    fetchGames();
-  };
-
-  const handleResetFilters = () => {
-    setSearch('');
-    setGenre('');
-    setPlatform('');
-    setSort('-createdAt');
-    setPage(1);
-  };
+  if (user?.role === 'admin') {
+    return (
+      <section className={styles.container}>
+        <h1>Game Radar</h1>
+        <p className={styles.adminInfo}>
+          Admin accounts now focus on moderation and review. Player game tracking is available for normal users only.
+        </p>
+      </section>
+    );
+  }
 
   return (
-    <div className={styles.container}>
+    <section className={styles.container}>
       <div className={styles.header}>
-        <h1>Games</h1>
-        {user?.role === 'admin' && (
-          <button 
-            className={styles.addBtn} 
-            onClick={() => {
-              setShowForm(true);
-              setEditingGame(null);
-            }}
-          >
-            + Add Game
-          </button>
-        )}
+        <h1>Global Game Radar</h1>
+        <p>Track trending hits, filter the results, and add games to your library or watchlist instantly.</p>
       </div>
 
-      {showForm && (
-        <div className={styles.modal}>
-          <div className={styles.modalContent}>
-            <button 
-              className={styles.closeBtn}
-              onClick={() => {
-                setShowForm(false);
-                setEditingGame(null);
-              }}
-            >
-              ×
-            </button>
-            <h2>{editingGame ? 'Edit Game' : 'Add New Game'}</h2>
-            {user?.role === 'admin' && (
-              <GameForm 
-                game={editingGame} 
-                onSubmit={handleFormSubmit}
-                onCancel={() => {
-                  setShowForm(false);
-                  setEditingGame(null);
-                }}
-              />
-            )}
-          </div>
-        </div>
-      )}
-
-      <div className={styles.filters}>
+      <form
+        className={styles.searchBar}
+        onSubmit={(e) => {
+          e.preventDefault();
+          runSearch();
+        }}
+      >
         <input
           type="text"
-          placeholder="Search games..."
           value={search}
-          onChange={(e) => {
-            setSearch(e.target.value);
-            setPage(1);
-          }}
-          className={styles.searchInput}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Try: Fortnite, Elden Ring, Valorant..."
         />
-        
-        <select 
-          value={genre} 
-          onChange={(e) => {
-            setGenre(e.target.value);
-            setPage(1);
-          }}
-          className={styles.filterSelect}
-        >
-          <option value="">All Genres</option>
-          {genres.map(g => (
-            <option key={g} value={g}>{g}</option>
-          ))}
-        </select>
+        <button type="submit" disabled={loading}>{loading ? 'Scanning...' : 'Run Radar'}</button>
+      </form>
 
-        <select 
-          value={platform} 
-          onChange={(e) => {
-            setPlatform(e.target.value);
-            setPage(1);
-          }}
-          className={styles.filterSelect}
-        >
-          <option value="">All Platforms</option>
-          {platforms.map(p => (
-            <option key={p} value={p}>{p}</option>
-          ))}
-        </select>
-
-        <select 
-          value={sort} 
-          onChange={(e) => setSort(e.target.value)}
-          className={styles.filterSelect}
-        >
-          <option value="-createdAt">Newest First</option>
-          <option value="createdAt">Oldest First</option>
-          <option value="-rating">Highest Rating</option>
-          <option value="rating">Lowest Rating</option>
-          <option value="title">Title A-Z</option>
-        </select>
-
-        {(search || genre || platform) && (
-          <button 
-            className={styles.resetBtn}
-            onClick={handleResetFilters}
-          >
-            Reset Filters
-          </button>
-        )}
+      <div className={styles.filtersRow}>
+        <label>
+          Genre
+          <select value={selectedGenre} onChange={(e) => setSelectedGenre(e.target.value)}>
+            {genres.map((genre) => <option key={genre} value={genre}>{genre === 'all' ? 'All Genres' : genre}</option>)}
+          </select>
+        </label>
+        <label>
+          Platform
+          <select value={selectedPlatform} onChange={(e) => setSelectedPlatform(e.target.value)}>
+            {platforms.map((platform) => <option key={platform} value={platform}>{platform === 'all' ? 'All Platforms' : platform}</option>)}
+          </select>
+        </label>
       </div>
 
+      {message && <div className={styles.success}>{message}</div>}
       {error && <div className={styles.error}>{error}</div>}
 
       {loading ? (
-        <div className={styles.loading}>Loading games...</div>
-      ) : games.length === 0 ? (
-        <div className={styles.empty}>
-          <p>No games found.</p>
-          {user?.role === 'admin' && (
-            <button 
-              className={styles.addBtn}
-              onClick={() => {
-                setShowForm(true);
-                setEditingGame(null);
-              }}
-            >
-              Create your first game
-            </button>
-          )}
-        </div>
+        <div className={styles.loading}>Scanning live game catalogs...</div>
+      ) : filteredGames.length === 0 ? (
+        <div className={styles.empty}>No results yet. Try another search keyword.</div>
       ) : (
-        <>
-          <div className={styles.gamesList}>
-            {games.map(game => (
-              <div key={game._id} className={styles.gameCard}>
-                {game.imageUrl && (
-                  <img 
-                    src={game.imageUrl} 
-                    alt={game.title}
-                    className={styles.gameImage}
-                  />
+        <div className={styles.gamesList}>
+          {filteredGames.map((game) => (
+            <article key={`${game.source}-${game.rawgId}`} className={styles.gameCard}>
+              <div className={styles.coverWrap}>
+                {game.coverUrl ? (
+                  <img src={game.coverUrl} alt={game.title} className={styles.gameImage} />
+                ) : (
+                  <div className={styles.noCover}>No Cover</div>
                 )}
-                <div className={styles.gameInfo}>
-                  <h3>{game.title}</h3>
-                  <p className={styles.genre}>{game.genre}</p>
-                  <p className={styles.description}>{game.description}</p>
-                  
-                  <div className={styles.meta}>
-                    <span className={styles.rating}>⭐ {game.rating}/10</span>
-                    <span className={styles.developer}>{game.developer || 'Unknown'}</span>
-                  </div>
+              </div>
 
-                  <div className={styles.platforms}>
-                    {game.platform?.map(p => (
-                      <span key={p} className={styles.platformBadge}>{p}</span>
-                    ))}
-                  </div>
+              <div className={styles.gameInfo}>
+                <h3>{game.title}</h3>
+                <p className={styles.genre}>{game.genre}</p>
+                <p className={styles.description}>{game.description}</p>
 
-                  {user?.role === 'admin' ? (
-                    <div className={styles.actions}>
-                      <button 
-                        className={styles.editBtn}
-                        onClick={() => {
-                          setEditingGame(game);
-                          setShowForm(true);
-                        }}
-                      >
-                        Edit
-                      </button>
-                      <button 
-                        className={styles.deleteBtn}
-                        onClick={() => handleDeleteGame(game._id)}
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  ) : (
-                    <div className={styles.actions}>
-                      <button 
-                        className={styles.buyBtn}
-                        onClick={() => handleBuyGame(game._id)}
-                        disabled={purchasing[game._id]}
-                      >
-                        {purchasing[game._id] === 'buying' ? 'Buying...' : `Buy $${game.buyPrice || 9.99}`}
-                      </button>
-                      <button 
-                        className={styles.rentBtn}
-                        onClick={() => handleRentGame(game._id)}
-                        disabled={purchasing[game._id]}
-                      >
-                        {purchasing[game._id] === 'renting' ? 'Renting...' : `Rent $${game.rentPrice || 2.99}/7d`}
-                      </button>
-                    </div>
-                  )}
+                <div className={styles.meta}>
+                  <span>{game.source}</span>
+                  <span>Owner: {game.owner}</span>
+                  <span>Rating {Number(game.rating).toFixed(1)}</span>
+                </div>
+
+                <div className={styles.metaSecondary}>
+                  <span>Popularity {Number(game.popularityScore || 0).toFixed(1)}</span>
+                  <span>{Number(game.usersOverall || 0).toLocaleString()} users</span>
+                </div>
+
+                <div className={styles.platforms}>
+                  {(game.platforms || []).slice(0, 4).map((p) => (
+                    <span key={`${game.rawgId}-${p}`} className={styles.platformBadge}>{p}</span>
+                  ))}
+                </div>
+
+                <div className={styles.actions}>
+                  <button
+                    className={styles.addBtn}
+                    onClick={() => addToList(game, 'library')}
+                    disabled={savingId !== null}
+                  >
+                    {savingId === `${game.rawgId}-library` ? 'Adding...' : 'Add to Library'}
+                  </button>
+                  <button
+                    className={styles.watchBtn}
+                    onClick={() => addToList(game, 'watchlist')}
+                    disabled={savingId !== null}
+                  >
+                    {savingId === `${game.rawgId}-watchlist` ? 'Adding...' : 'Add to Watchlist'}
+                  </button>
                 </div>
               </div>
-            ))}
-          </div>
-
-          {totalPages > 1 && (
-            <div className={styles.pagination}>
-              <button 
-                disabled={page === 1}
-                onClick={() => setPage(page - 1)}
-                className={styles.paginationBtn}
-              >
-                ← Previous
-              </button>
-              <span className={styles.pageInfo}>
-                Page {page} of {totalPages}
-              </span>
-              <button 
-                disabled={page === totalPages}
-                onClick={() => setPage(page + 1)}
-                className={styles.paginationBtn}
-              >
-                Next →
-              </button>
-            </div>
-          )}
-        </>
+            </article>
+          ))}
+        </div>
       )}
-    </div>
+    </section>
   );
 };
 

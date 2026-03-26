@@ -7,7 +7,9 @@ const upload = require('../utils/multerConfig');
 const { createGameSchema, updateGameSchema } = require('../utils/validationSchemas');
 
 // Public routes
+router.get('/search', gameController.searchInternetGames);
 router.get('/', gameController.getAllGames);
+router.post('/hydrate', gameController.hydrateGames);
 router.get('/:id', gameController.getGameById);
 
 // Protected routes

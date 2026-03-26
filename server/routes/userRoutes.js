@@ -3,12 +3,18 @@ const router = express.Router();
 const userController = require('../controllers/userController');
 const authMiddleware = require('../middlewares/authMiddleware');
 
-// Get user profile (protected route)
-router.get('/:id', authMiddleware, userController.getUserProfile);
+router.get('/stats/dashboard', authMiddleware, userController.getDashboardStats);
 
-// Protected routes
+router.get('/games/library', authMiddleware, userController.getUserGames);
+router.post('/games', authMiddleware, userController.addOrUpdateUserGame);
+router.delete('/games/:rawgId', authMiddleware, userController.removeUserGame);
+router.post('/games/:rawgId/session', authMiddleware, userController.logPlaySession);
+
+router.get('/leaderboard/preview', userController.getLeaderboardPreview);
+router.get('/leaderboard/full', userController.getFullLeaderboard);
+
+router.get('/:id', authMiddleware, userController.getUserProfile);
 router.patch('/:id/profile', authMiddleware, userController.updateProfile);
 router.patch('/:id/change-password', authMiddleware, userController.changePassword);
-router.get('/:id/dashboard', authMiddleware, userController.getDashboard);
 
 module.exports = router;

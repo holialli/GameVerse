@@ -33,11 +33,27 @@ const AskAI = () => {
     setError(null);
     setResponse(null);
 
-    // Client-side fallbacks. Check for known env keys: Gemini/Google or NewsAPI.
     const GEMINI_KEY = process.env.REACT_APP_GEMINI_API_KEY || process.env.REACT_APP_GOOGLE_API_KEY;
-    const NEWS_KEY = process.env.REACT_APP_NEWSAPI_KEY;
 
-    // If a Gemini key is available, prefer it client-side and skip server proxy to respect local-only preference.
+    const serverUrl = '/api/ai/chat';
+    try {
+      const serverRes = await fetch(serverUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: text })
+      });
+
+      if (serverRes.ok) {
+        const json = await serverRes.json();
+        if (json && json.answer) {
+          setResponse({ type: 'text', text: json.answer, provider: 'GameVerse AI' });
+          return true;
+        }
+      }
+    } catch (serverErr) {
+      console.info('Server AI request failed.');
+    }
+
     if (GEMINI_KEY) {
       try {
         const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`;
@@ -62,62 +78,6 @@ const AskAI = () => {
         console.info('Gemini client request failed.', e);
       }
     }
-    // If server proxy exists and no Gemini key, try it first (server may have better LLM access)
-    if (!GEMINI_KEY) {
-      const serverUrl = '/api/chat';
-      try {
-        const serverRes = await fetch(serverUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt: text })
-        });
-
-        if (serverRes.ok) {
-          const json = await serverRes.json();
-          if (json && json.answer) {
-            setResponse({ type: 'text', text: json.answer, provider: 'Server' });
-            return true;
-          }
-        }
-      } catch (serverErr) {
-        console.info('Server proxy not available or failed.');
-      }
-    }
-
-    if (NEWS_KEY) {
-      try {
-        const q = encodeURIComponent(text);
-        const newsUrl = `https://newsapi.org/v2/everything?q=${q}&pageSize=5&apiKey=${NEWS_KEY}`;
-        const nRes = await fetch(newsUrl);
-        if (nRes.ok) {
-          const nd = await nRes.json();
-          if (nd.articles && nd.articles.length > 0) {
-            // Map to article objects with title, url, source
-            const list = nd.articles.map(a => ({ title: a.title, url: a.url, source: a.source?.name || '' }));
-            setResponse({ type: 'articles', list, provider: 'NewsAPI' });
-            return true;
-          }
-        }
-      } catch (e) {
-        console.info('NewsAPI client request failed.', e);
-      }
-    }
-
-    // DummyJSON fallback
-    try {
-      const fRes = await fetch(`https://dummyjson.com/posts/search?q=${encodeURIComponent(text)}`);
-      if (fRes.ok) {
-        const fd = await fRes.json();
-        if (fd.posts && fd.posts.length > 0) {
-          // Map to pseudo-article links (DummyJSON doesn't provide external urls)
-          const list = fd.posts.slice(0,3).map(p => ({ title: p.title, url: `https://dummyjson.com/posts/${p.id}`, source: 'DummyJSON' }));
-          setResponse({ type: 'articles', list, provider: 'DummyJSON' });
-          return true;
-        }
-      }
-    } catch (e) {
-      console.info('DummyJSON fallback failed.', e);
-    }
 
     return false;
   };
@@ -127,7 +87,7 @@ const AskAI = () => {
     setIsLoading(true);
     const ok = await sendPrompt(prompt || '');
     setIsLoading(false);
-    if (!ok) setError("I'm having trouble connecting to the AI right now. Try again or enable a server proxy for a full chatbot.");
+    if (!ok) setError('AI service is unavailable right now. Please try again in a moment.');
   };
 
   return (

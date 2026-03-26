@@ -1,0 +1,68 @@
+.page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem 1rem 3rem;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 2rem;
+}
+
+.header p {
+  margin-top: 0.5rem;
+  color: var(--muted);
+}
+
+.sectionTitle {
+  margin: 1.2rem 0 0.5rem;
+  color: var(--text);
+  font-size: 1.1rem;
+}
+
+.error {
+  margin-top: 1rem;
+  border: 1px solid #6d2d3f;
+  background: #2c131b;
+  color: #ffd4dc;
+  border-radius: 10px;
+  padding: 0.75rem;
+}
+
+.empty {
+  margin-top: 1rem;
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--bg-elev) 85%, var(--bg));
+  padding: 1rem;
+  color: var(--muted);
+}
+
+.grid {
+  margin-top: 1rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 0.8rem;
+}
+
+.card {
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--bg-elev);
+  padding: 1rem;
+}
+
+.featured {
+  border-color: color-mix(in srgb, var(--accent) 60%, var(--border));
+  box-shadow: 0 12px 26px color-mix(in srgb, var(--accent) 20%, transparent);
+}
+
+.card h3 {
+  margin-top: 0;
+  margin-bottom: 0.7rem;
+}
+
+.card p {
+  margin: 0.35rem 0;
+  color: var(--muted);
+}

@@ -1,238 +1,187 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { userAPI } from '../../services/api';
+import axiosInstance from '../../lib/axios';
 import styles from './Dashboard.module.css';
 
 const Dashboard = () => {
-  const { user, accessToken } = useAuth();
-  const [dashboard, setDashboard] = useState(null);
+  const { user } = useAuth();
+  const [stats, setStats] = useState(null);
+  const [library, setLibrary] = useState([]);
+  const [leaderboard, setLeaderboard] = useState([]);
+  const [adminOverview, setAdminOverview] = useState({ stats: {}, logs: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  const watchlistCount = useMemo(() => library.filter((g) => g.status === 'watchlist').length, [library]);
+  const completedCount = useMemo(() => library.filter((g) => g.status === 'completed').length, [library]);
+
   useEffect(() => {
-    const fetchDashboard = async () => {
+    const fetchData = async () => {
       setLoading(true);
       setError('');
+
       try {
-        const data = await userAPI.getDashboard(user.id);
-        setDashboard(data);
+        if (user?.role === 'admin') {
+          const [statsRes, logsRes] = await Promise.all([
+            axiosInstance.get('/admin/stats'),
+            axiosInstance.get('/admin/audit-logs?limit=8'),
+          ]);
+          setAdminOverview({
+            stats: statsRes.data.stats || {},
+            logs: Array.isArray(logsRes.data.logs) ? logsRes.data.logs : [],
+          });
+          setLoading(false);
+          return;
+        }
+
+        const [statsRes, libraryRes, leaderboardRes] = await Promise.all([
+          userAPI.getDashboard(),
+          userAPI.getLibrary(),
+          userAPI.getLeaderboardPreview(),
+        ]);
+
+        setStats(statsRes.stats || {});
+        setLibrary(Array.isArray(libraryRes.games) ? libraryRes.games : []);
+        setLeaderboard(Array.isArray(leaderboardRes.leaderboard) ? leaderboardRes.leaderboard : []);
       } catch (err) {
-        console.error('Dashboard error:', err);
-        setError(err.message || 'Failed to load dashboard');
+        setError(err.message || 'Failed to load your dashboard');
       } finally {
         setLoading(false);
       }
     };
-    if (user && accessToken) fetchDashboard();
-  }, [user, accessToken]);
 
-  if (loading) return <div className={styles.loading}>Loading dashboard...</div>;
+    fetchData();
+  }, [user]);
+
+  if (loading) return <div className={styles.state}>Loading your hub...</div>;
   if (error) return <div className={styles.error}>{error}</div>;
-  if (!dashboard) return <div className={styles.error}>No dashboard data yet.</div>;
 
-  const isAdmin = dashboard.user?.role === 'admin';
-  const platformData = dashboard.stats?.platformBreakdown || [];
-  const genreData = dashboard.genreBreakdown || [];
-  const totalPlatforms = platformData.reduce((sum, p) => sum + p.count, 0) || 1;
-  const totalGenres = genreData.reduce((sum, g) => sum + g.count, 0) || 1;
+  if (user?.role === 'admin') {
+    return (
+      <section className={styles.page}>
+        <div className={styles.hero}>
+          <h1>Admin Dashboard</h1>
+          <p>Operational summary, trust signals, and recent actions at a glance.</p>
+          <div className={styles.heroActions}>
+            <Link to="/admin" className={styles.cta}>Open Admin Center</Link>
+            <Link to="/profile" className={styles.ghost}>View Admin Profile</Link>
+          </div>
+        </div>
+
+        <div className={styles.kpiGrid}>
+          <article className={styles.kpiCard}><h3>Total Users</h3><p>{adminOverview.stats.totalUsers || 0}</p></article>
+          <article className={styles.kpiCard}><h3>Pending Complaints</h3><p>{adminOverview.stats.pendingFeedbackCount || 0}</p></article>
+          <article className={styles.kpiCard}><h3>Awaiting Event Results</h3><p>{adminOverview.stats.awaitingEventResultCount || 0}</p></article>
+          <article className={styles.kpiCard}><h3>Weekly Actions</h3><p>{adminOverview.stats.recentAuditCount || 0}</p></article>
+        </div>
+
+        <article className={styles.panel}>
+          <h2>Recent Activity</h2>
+          {adminOverview.logs.length === 0 ? <p className={styles.empty}>No recent admin activity.</p> : (
+            <ul className={styles.list}>
+              {adminOverview.logs.map((entry) => (
+                <li key={entry._id} className={styles.row}>
+                  <span>{entry.action.replace(/_/g, ' ')}</span>
+                  <span className={styles.badge}>{new Date(entry.createdAt).toLocaleString()}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </article>
+      </section>
+    );
+  }
+
+  const topBadges = Array.isArray(user?.badges) ? user.badges.slice(0, 4) : [];
 
   return (
-    <div className={styles.container}>
-      <div className={styles.header}>
-        <div className={styles.headerContent}>
-          <h1>{isAdmin ? 'Admin Dashboard' : 'Dashboard'}</h1>
-          <p className={styles.muted}>Welcome back, {dashboard.user?.name}!</p>
+    <section className={styles.page}>
+      <div className={styles.hero}>
+        <h1>Player Dashboard</h1>
+        <p>Welcome back, {user?.name || 'Player'}. Track progress, unlock badges, and discover your next obsession.</p>
+        <div className={styles.heroActions}>
+          <Link to="/games" className={styles.cta}>Open Game Radar</Link>
+          <Link to="/discovery" className={styles.ghost}>Launch Discovery Oracle</Link>
         </div>
       </div>
 
-      {isAdmin ? (
-        <>
-          <div className={styles.kpiGrid}>
-            <div className={styles.kpiCard}>
-              <div className={styles.kpiIcon} style={{ background: 'linear-gradient(135deg, #FF6B6B, #FF8E8E)' }}>📊</div>
-              <div className={styles.kpiContent}>
-                <div className={styles.kpiLabel}>Total Games</div>
-                <div className={styles.kpiValue}>{dashboard.stats?.totalGames || 0}</div>
-              </div>
-            </div>
-            <div className={styles.kpiCard}>
-              <div className={styles.kpiIcon} style={{ background: 'linear-gradient(135deg, #4ECDC4, #7DDDD1)' }}>👥</div>
-              <div className={styles.kpiContent}>
-                <div className={styles.kpiLabel}>Total Users</div>
-                <div className={styles.kpiValue}>{dashboard.stats?.totalUsers || 0}</div>
-              </div>
-            </div>
-            <div className={styles.kpiCard}>
-              <div className={styles.kpiIcon} style={{ background: 'linear-gradient(135deg, #FFD93D, #FFEB99)' }}>💰</div>
-              <div className={styles.kpiContent}>
-                <div className={styles.kpiLabel}>Total Purchases</div>
-                <div className={styles.kpiValue}>{dashboard.stats?.totalPurchases || 0}</div>
-              </div>
-            </div>
-            <div className={styles.kpiCard}>
-              <div className={styles.kpiIcon} style={{ background: 'linear-gradient(135deg, #A8E6CF, #C8F3E0)' }}>⭐</div>
-              <div className={styles.kpiContent}>
-                <div className={styles.kpiLabel}>Avg Rating</div>
-                <div className={styles.kpiValue}>{dashboard.stats?.averageRating || 0}/10</div>
-              </div>
-            </div>
-          </div>
+      <div className={styles.kpiGrid}>
+        <article className={styles.kpiCard}>
+          <h3>Library</h3>
+          <p>{stats?.librarySize || 0}</p>
+        </article>
+        <article className={styles.kpiCard}>
+          <h3>Watchlist</h3>
+          <p>{watchlistCount}</p>
+        </article>
+        <article className={styles.kpiCard}>
+          <h3>Completed</h3>
+          <p>{completedCount}</p>
+        </article>
+        <article className={styles.kpiCard}>
+          <h3>Weekly Playtime</h3>
+          <p>{stats?.playtimeThisWeek || 0}h</p>
+        </article>
+        <article className={styles.kpiCard}>
+          <h3>Level</h3>
+          <p>{stats?.level || 1}</p>
+        </article>
+        <article className={styles.kpiCard}>
+          <h3>XP</h3>
+          <p>{stats?.xp || 0}</p>
+        </article>
+      </div>
 
-          <div className={styles.contentGrid}>
-            <div className={styles.card}>
-              <h3 className={styles.cardTitle}>Platform Distribution</h3>
-              <div className={styles.chartContainer}>
-                {platformData.length === 0 ? (
-                  <p className={styles.emptyState}>No platform data</p>
-                ) : (
-                  platformData.map((p) => (
-                    <div key={p._id} className={styles.chartBar}>
-                      <div className={styles.chartLabel}>{p._id}</div>
-                      <div className={styles.barContainer}>
-                        <div
-                          className={styles.bar}
-                          style={{
-                            width: `${(p.count / totalPlatforms) * 100}%`,
-                            background: `hsl(${Math.random() * 360}, 70%, 60%)`
-                          }}
-                        />
-                      </div>
-                      <div className={styles.chartValue}>{p.count}</div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
+      <div className={styles.grid}>
+        <article className={styles.panel}>
+          <h2>Recent Badges</h2>
+          {topBadges.length === 0 ? <p className={styles.empty}>Start tracking games to unlock badges.</p> : (
+            <ul className={styles.list}>
+              {topBadges.map((badge, idx) => (
+                <li key={`${badge.name}-${idx}`} className={styles.row}>
+                  <span>{badge.name}</span>
+                  <span className={styles.badge}>{badge.tier || 'minor'}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </article>
 
-            <div className={styles.card}>
-              <h3 className={styles.cardTitle}>Genre Distribution</h3>
-              <div className={styles.chartContainer}>
-                {genreData.length === 0 ? (
-                  <p className={styles.emptyState}>No genre data</p>
-                ) : (
-                  genreData.slice(0, 6).map((g) => (
-                    <div key={g._id} className={styles.chartBar}>
-                      <div className={styles.chartLabel}>{g._id}</div>
-                      <div className={styles.barContainer}>
-                        <div
-                          className={styles.bar}
-                          style={{
-                            width: `${(g.count / totalGenres) * 100}%`,
-                            background: `hsl(${Math.random() * 360}, 70%, 60%)`
-                          }}
-                        />
-                      </div>
-                      <div className={styles.chartValue}>{g.count}</div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
+        <article className={styles.panel}>
+          <h2>Recently Tracked Games</h2>
+          {library.length === 0 ? (
+            <p className={styles.empty}>No games tracked yet. Add a few from Game Radar to build your profile.</p>
+          ) : (
+            <ul className={styles.list}>
+              {library.slice(0, 6).map((g) => (
+                <li key={`${g.rawgId}-${g.status}`} className={styles.row}>
+                  <span>{g.title}</span>
+                  <span className={styles.badge}>{g.status}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </article>
 
-            <div className={styles.card}>
-              <h3 className={styles.cardTitle}>⭐ Top Rated Games</h3>
-              <div className={styles.listContainer}>
-                {(!dashboard.topRatedGames || dashboard.topRatedGames.length === 0) ? (
-                  <p className={styles.emptyState}>No games yet</p>
-                ) : (
-                  <ul className={styles.list}>
-                    {dashboard.topRatedGames.slice(0, 5).map((game, idx) => (
-                      <li key={game._id} className={styles.listItem}>
-                        <span className={styles.rank}>#{idx + 1}</span>
-                        <span className={styles.title}>{game.title}</span>
-                        <span className={styles.badge}>{game.rating}/10</span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            </div>
-
-            <div className={styles.card}>
-              <h3 className={styles.cardTitle}>🎮 Recent Games</h3>
-              <div className={styles.listContainer}>
-                {(!dashboard.recentGames || dashboard.recentGames.length === 0) ? (
-                  <p className={styles.emptyState}>No games yet</p>
-                ) : (
-                  <ul className={styles.list}>
-                    {dashboard.recentGames.slice(0, 5).map((game) => (
-                      <li key={game._id} className={styles.listItem}>
-                        <span className={styles.title}>{game.title}</span>
-                        <span className={styles.badge}>{game.genre}</span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            </div>
-          </div>
-        </>
-      ) : (
-        <>
-          <div className={styles.kpiGrid}>
-            <div className={styles.kpiCard}>
-              <div className={styles.kpiIcon} style={{ background: 'linear-gradient(135deg, #FF6B6B, #FF8E8E)' }}>🛒</div>
-              <div className={styles.kpiContent}>
-                <div className={styles.kpiLabel}>Games Purchased</div>
-                <div className={styles.kpiValue}>{dashboard.stats?.totalPurchased || 0}</div>
-              </div>
-            </div>
-            <div className={styles.kpiCard}>
-              <div className={styles.kpiIcon} style={{ background: 'linear-gradient(135deg, #4ECDC4, #7DDDD1)' }}>🎮</div>
-              <div className={styles.kpiContent}>
-                <div className={styles.kpiLabel}>Active Rentals</div>
-                <div className={styles.kpiValue}>{dashboard.stats?.totalRenting || 0}</div>
-              </div>
-            </div>
-            <div className={styles.kpiCard}>
-              <div className={styles.kpiIcon} style={{ background: 'linear-gradient(135deg, #FFD93D, #FFEB99)' }}>💵</div>
-              <div className={styles.kpiContent}>
-                <div className={styles.kpiLabel}>Total Spent</div>
-                <div className={styles.kpiValue}>${(dashboard.stats?.totalSpent || 0).toFixed(2)}</div>
-              </div>
-            </div>
-          </div>
-
-          <div className={styles.contentGrid}>
-            <div className={styles.card}>
-              <h3 className={styles.cardTitle}>📦 Recent Purchases</h3>
-              <div className={styles.listContainer}>
-                {(!dashboard.recentPurchases || dashboard.recentPurchases.length === 0) ? (
-                  <p className={styles.emptyState}>No purchases yet</p>
-                ) : (
-                  <ul className={styles.list}>
-                    {dashboard.recentPurchases.slice(0, 5).map((purchase) => (
-                      <li key={purchase._id} className={styles.listItem}>
-                        <span className={styles.title}>{purchase.gameId?.title}</span>
-                        <span className={styles.badge}>${purchase.price}</span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            </div>
-
-            <div className={styles.card}>
-              <h3 className={styles.cardTitle}>🎬 Active Rentals</h3>
-              <div className={styles.listContainer}>
-                {(!dashboard.activeRentals || dashboard.activeRentals.length === 0) ? (
-                  <p className={styles.emptyState}>No active rentals</p>
-                ) : (
-                  <ul className={styles.list}>
-                    {dashboard.activeRentals.slice(0, 5).map((rental) => (
-                      <li key={rental._id} className={styles.listItem}>
-                        <span className={styles.title}>{rental.gameId?.title}</span>
-                        <span className={styles.badge}>{new Date(rental.expiryDate).toLocaleDateString()}</span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            </div>
-          </div>
-        </>
-      )}
-    </div>
+        <article className={styles.panel}>
+          <h2>Community Top Players</h2>
+          {leaderboard.length === 0 ? (
+            <p className={styles.empty}>Leaderboard data will appear as players track sessions.</p>
+          ) : (
+            <ul className={styles.list}>
+              {leaderboard.map((entry, idx) => (
+                <li key={entry.userId || idx} className={styles.row}>
+                  <span>#{idx + 1} {entry.username}</span>
+                  <span className={styles.badge}>L{entry.level} • {entry.xp} XP</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </article>
+      </div>
+    </section>
   );
 };
 

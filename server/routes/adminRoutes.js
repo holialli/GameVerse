@@ -1,22 +1,36 @@
 const express = require('express');
+const router = express.Router();
 const adminController = require('../controllers/adminController');
 const authMiddleware = require('../middlewares/authMiddleware');
-const adminMiddleware = require('../middleware/adminMiddleware');
+const requireAdmin = require('../middleware/adminMiddleware');
 
-const router = express.Router();
-
-// All admin routes require authentication and admin role
+// Middleware chain enforcement
 router.use(authMiddleware);
-router.use(adminMiddleware);
+router.use(requireAdmin);
 
-// User management
-router.get('/users', adminController.getAllUsers);
-router.get('/users/:id', adminController.getUserDetails);
-router.patch('/users/:id/promote', adminController.promoteToAdmin);
-router.patch('/users/:id/demote', adminController.demoteToUser);
-router.delete('/users/:id', adminController.deleteUser);
+// Admin overview and user moderation
+router.get('/stats', adminController.getDashboardStats);
+router.get('/users', adminController.getUsers);
+router.patch('/users/:id/moderate', adminController.moderateUser);
+router.patch('/users/:id/xp', adminController.grantUserXp);
+router.patch('/users/:id/role', adminController.updateUserRole);
+router.post('/users/:id/badges', adminController.grantUserBadge);
 
-// Statistics
-router.get('/statistics', adminController.getStatistics);
+// Complaints and feedback review
+router.get('/feedback', adminController.getPendingFeedback);
+router.patch('/feedback/:id/resolve', adminController.resolveFeedback);
+router.get('/audit-logs', adminController.getAuditLogs);
+
+// Video Queue
+router.get('/videos/pending', adminController.getPendingVideos);
+router.patch('/videos/:id/approve', adminController.approveVideo);
+router.delete('/videos/:id', adminController.deleteVideo);
+
+// AI Prompt Tuner (SiteConfig)
+router.get('/config/:key', adminController.getSiteConfig);
+router.patch('/config/:key', adminController.updateSiteConfig);
+
+// Tournament Verifier
+router.patch('/events/:eventId/winner', adminController.setEventWinner);
 
 module.exports = router;

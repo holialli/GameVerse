@@ -1,48 +1,33 @@
 import React, { useState, useEffect } from 'react';
 import styles from './News.module.css'; // CSS Module
+import axiosInstance from '../../lib/axios';
 
 const News = () => {
   const [articles, setArticles] = useState([]);
+  const [timeFilter, setTimeFilter] = useState('24h');
+  const [rankFilter, setRankFilter] = useState('hot');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  const safeExternalUrl = (value) => {
+    try {
+      const parsed = new URL(value);
+      if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return null;
+      return parsed.toString();
+    } catch (err) {
+      return null;
+    }
+  };
 
   useEffect(() => {
     const fetchNews = async () => {
       try {
-        const NEWSAPI_KEY = process.env.REACT_APP_NEWSAPI_KEY;
-        if (!NEWSAPI_KEY) {
-          setError('No NewsAPI key configured. Add REACT_APP_NEWSAPI_KEY to your .env');
-          setIsLoading(false);
-          return;
-        }
-
-          // Strongly prefer established gaming domains to avoid unrelated news
-          const q = encodeURIComponent('esports OR gaming OR "video games" OR "e-sports"');
-          const DOMAINS = 'ign.com,pcgamer.com,polygon.com,gamesradar.com,gamespot.com,rockpapershotgun.com,comicbook.com,screencrush.com,mobilesyrup.com,dotesports.com,esportsinsider.com,verge.com,variety.com';
-        const url = `https://newsapi.org/v2/everything?q=${q}&domains=${DOMAINS}&language=en&sortBy=publishedAt&pageSize=8&apiKey=${NEWSAPI_KEY}`;
-        const res = await fetch(url);
-        if (!res.ok) throw new Error(`NewsAPI error: ${res.status} ${res.statusText}`);
-        const json = await res.json();
-        if (!Array.isArray(json.articles)) throw new Error('Unexpected NewsAPI response');
-
-        const mapped = json.articles.map((a, idx) => ({
-          id: a.url || `${a.publishedAt}-${idx}`,
-          title: a.title,
-          tags: a.source && a.source.name ? [a.source.name] : [],
-          reactions: 0,
-          body: a.description || a.content || a.title,
-          url: a.url,
-          source: a.source && a.source.name ? a.source.name : 'NewsAPI'
-        }));
+        const res = await axiosInstance.get('/news/trending');
+        const mapped = Array.isArray(res?.data?.articles) ? res.data.articles : [];
 
         setArticles(mapped);
       } catch (err) {
-        console.error('News fetch error:', err);
-        if (err.message.includes('426')) {
-          setError('News API limit reached. Please try again later.');
-        } else {
-          setError(err.message || 'Failed to load gaming news');
-        }
+        setError(err?.response?.data?.message || err.message || 'Failed to load gaming news');
       } finally {
         setIsLoading(false);
       }
@@ -77,18 +62,56 @@ const News = () => {
     );
   }
 
+  const now = Date.now();
+  const threshold = timeFilter === '24h'
+    ? now - 24 * 60 * 60 * 1000
+    : timeFilter === '7d'
+      ? now - 7 * 24 * 60 * 60 * 1000
+      : 0;
+
+  const scored = articles
+    .filter((article) => {
+      if (!threshold) return true;
+      const createdAt = article?.createdAt ? new Date(article.createdAt).getTime() : 0;
+      return createdAt >= threshold;
+    })
+    .sort((a, b) => {
+      if (rankFilter === 'trending') return (Number(b.reactions || 0) + Number(b.comments || 0)) - (Number(a.reactions || 0) + Number(a.comments || 0));
+      if (rankFilter === 'controversial') return Number(b.comments || 0) - Number(a.comments || 0);
+      return Number(b.hotScore || 0) - Number(a.hotScore || 0);
+    })
+    .slice(0, 8);
+
   return (
     <section className="section">
       <div className="section-header">
         <h1 className="section-title">News & Updates</h1>
-        <p className="section-desc">Fresh stories from the world of gaming.</p>
+        <p className="section-desc">Live hot stories ranked by community activity and recency.</p>
       </div>
 
-      
+      <div className={styles.filterRow}>
+        <label>
+          Time
+          <select value={timeFilter} onChange={(e) => setTimeFilter(e.target.value)}>
+            <option value="24h">Last 24 hours</option>
+            <option value="7d">Last 7 days</option>
+            <option value="all">All time</option>
+          </select>
+        </label>
+        <label>
+          Rank
+          <select value={rankFilter} onChange={(e) => setRankFilter(e.target.value)}>
+            <option value="hot">Hot</option>
+            <option value="trending">Trending</option>
+            <option value="controversial">Controversial</option>
+          </select>
+        </label>
+      </div>
 
       <div className={styles.newsGrid}>
-        {articles.map((article) => {
+        {scored.map((article) => {
           const tags = Array.isArray(article.tags) ? article.tags.join(', ') : (article.tags || '—');
+          const externalUrl = safeExternalUrl(article.url);
 
           const formatReactions = (r) => {
             if (r == null) return 0;
@@ -109,11 +132,19 @@ const News = () => {
           return (
             <article key={article.id} className={styles.newsItem}>
               <h2 className="card-title">{article.title}</h2>
-              <p className="card-meta">Tags: {tags} • {formatReactions(article.reactions)} Reactions</p>
-              <p>{(article.body || '').substring(0, 150)}...</p>
-              <div style={{ marginTop: 10 }}>
-                {article.url ? (
-                  <a href={article.url} target="_blank" rel="noopener noreferrer">Source: {article.source || 'External'}</a>
+              <p className="card-meta">Tags: {tags}</p>
+              <div className={styles.metricsRow}>
+                <span className={styles.metricPill}>🔥 Hot Score {article.hotScore || 0}</span>
+                <span className={styles.metricPill}>💬 {article.comments || 0} comments</span>
+                <span className={styles.metricPill}>⚡ {formatReactions(article.reactions)} reactions</span>
+              </div>
+              <p>{(article.body || '').substring(0, 170)}...</p>
+              <div className={styles.sourceRow}>
+                {externalUrl ? (
+                  <>
+                    <a href={externalUrl} target="_blank" rel="noopener noreferrer">Source: {article.source || 'External'}</a>
+                    <a href={externalUrl} target="_blank" rel="noopener noreferrer" className={styles.readMore}>Read More</a>
+                  </>
                 ) : (
                   <small>Source: {article.source || 'Unknown'}</small>
                 )}

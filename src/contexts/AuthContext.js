@@ -27,6 +27,24 @@ export const AuthProvider = ({ children }) => {
     setIsLoading(false);
   }, []);
 
+  const parseApiResponse = async (response, fallbackMessage) => {
+    const rawText = await response.text();
+    let payload = null;
+
+    try {
+      payload = rawText ? JSON.parse(rawText) : null;
+    } catch (err) {
+      payload = null;
+    }
+
+    if (!response.ok) {
+      const serverMessage = payload?.message || payload?.error;
+      throw new Error(serverMessage || fallbackMessage || 'Request failed');
+    }
+
+    return payload || {};
+  };
+
   const register = async (name, email, password, confirmPassword) => {
     try {
       const response = await fetch(`${API_BASE_URL}/auth/register`, {
@@ -35,12 +53,7 @@ export const AuthProvider = ({ children }) => {
         body: JSON.stringify({ name, email, password, confirmPassword }),
       });
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Registration failed');
-      }
-
-      const data = await response.json();
+      const data = await parseApiResponse(response, 'Registration failed');
 
       setAccessToken(data.accessToken);
       setRefreshToken(data.refreshToken);
@@ -65,12 +78,7 @@ export const AuthProvider = ({ children }) => {
         body: JSON.stringify({ email, password }),
       });
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Login failed');
-      }
-
-      const data = await response.json();
+      const data = await parseApiResponse(response, 'Login failed');
 
       setAccessToken(data.accessToken);
       setRefreshToken(data.refreshToken);
@@ -95,9 +103,6 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
     localStorage.removeItem('user');
-    
-    // Reload page to reflect logged out state
-    window.location.href = '/';
   };
 
   const refreshAccessToken = async () => {
@@ -113,7 +118,7 @@ export const AuthProvider = ({ children }) => {
         throw new Error('Token refresh failed');
       }
 
-      const data = await response.json();
+      const data = await parseApiResponse(response, 'Token refresh failed');
 
       setAccessToken(data.accessToken);
       setRefreshToken(data.refreshToken);
@@ -129,6 +134,26 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const forgotPassword = async (email) => {
+    const response = await fetch(`${API_BASE_URL}/auth/forgot-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+
+    return parseApiResponse(response, 'Could not send reset link');
+  };
+
+  const resetPassword = async (token, newPassword, confirmPassword) => {
+    const response = await fetch(`${API_BASE_URL}/auth/reset-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, newPassword, confirmPassword }),
+    });
+
+    return parseApiResponse(response, 'Could not reset password');
+  };
+
   const value = {
     user,
     accessToken,
@@ -138,6 +163,8 @@ export const AuthProvider = ({ children }) => {
     login,
     logout,
     refreshAccessToken,
+    forgotPassword,
+    resetPassword,
     isAuthenticated: !!accessToken,
   };
 

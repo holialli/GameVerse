@@ -51,6 +51,63 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    isPrivate: {
+      type: Boolean,
+      default: false,
+    },
+    isShadowBanned: {
+      type: Boolean,
+      default: false,
+    },
+    violationCount: {
+      type: Number,
+      default: 0,
+    },
+    violations: {
+      type: [
+        {
+          reason: { type: String, default: '' },
+          date: { type: Date, default: Date.now },
+          issuedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+          type: { type: String, default: 'manual' },
+          message: { type: String, default: '' },
+          timestamp: { type: Date },
+        },
+      ],
+      default: [],
+    },
+    xp: {
+      type: Number,
+      default: 0,
+    },
+    level: {
+      type: Number,
+      default: 1,
+    },
+    badges: {
+      type: [
+        {
+          key: { type: String, default: '' },
+          name: { type: String, required: true },
+          tier: { type: String, enum: ['minor', 'major', 'super'], default: 'minor' },
+          description: { type: String, default: '' },
+          awardedAt: { type: Date, default: Date.now },
+        },
+      ],
+      default: [],
+    },
+    favoriteGenres: {
+      type: [String],
+      default: [],
+    },
+    wishlist: {
+      type: [String],
+      default: [],
+    },
+    hardwareProfile: {
+      type: mongoose.Schema.Types.Mixed,
+      default: {},
+    },
     resetToken: {
       type: String,
       default: null,
@@ -66,18 +123,13 @@ const userSchema = new mongoose.Schema(
 );
 
 // Hash password before saving
-userSchema.pre('save', async function (next) {
+userSchema.pre('save', async function () {
   if (!this.isModified('password')) {
-    return next();
+    return;
   }
 
-  try {
-    const salt = await bcrypt.genSalt(10);
-    this.password = await bcrypt.hash(this.password, salt);
-    next();
-  } catch (error) {
-    next(error);
-  }
+  const salt = await bcrypt.genSalt(10);
+  this.password = await bcrypt.hash(this.password, salt);
 });
 
 // Method to compare passwords

@@ -1,9 +1,9 @@
 import { initializeApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
 
-// TODO: Replace with your actual Firebase config
+// Firebase config - load API key from environment variable
 const firebaseConfig = {
-  apiKey: "AIzaSyAUvBbDCF3ZB0UzqQyekMDak2tuXivyyAw",
+  apiKey: process.env.REACT_APP_FIREBASE_API_KEY || "",
   authDomain: "gameverse-64cff.firebaseapp.com",
   projectId: "gameverse-64cff",
   storageBucket: "gameverse-64cff.firebasestorage.app",

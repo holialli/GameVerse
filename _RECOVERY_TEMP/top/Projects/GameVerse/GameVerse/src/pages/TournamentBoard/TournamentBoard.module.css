@@ -1,0 +1,57 @@
+.page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem 1rem 3rem;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 2rem;
+}
+
+.header p {
+  margin-top: 0.5rem;
+  color: #9eb2cf;
+}
+
+.error {
+  margin-top: 1rem;
+  border: 1px solid #6d2d3f;
+  background: #2c131b;
+  color: #ffd4dc;
+  border-radius: 10px;
+  padding: 0.75rem;
+}
+
+.empty {
+  margin-top: 1rem;
+  border: 1px dashed #37527d;
+  border-radius: 10px;
+  background: #0a1831;
+  padding: 1rem;
+  color: #b9cbe3;
+}
+
+.grid {
+  margin-top: 1rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 0.8rem;
+}
+
+.card {
+  border-radius: 12px;
+  border: 1px solid #23406f;
+  background: #08182f;
+  padding: 1rem;
+}
+
+.card h3 {
+  margin-top: 0;
+  margin-bottom: 0.7rem;
+}
+
+.card p {
+  margin: 0.35rem 0;
+  color: #c0d1e8;
+}

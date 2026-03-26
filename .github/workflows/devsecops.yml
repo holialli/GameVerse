@@ -128,3 +128,10 @@ jobs:
             
             # Post-deployment hygiene
             sudo docker image prune -f
+            sleep 30
+
+      - name: ZAP Baseline Scan
+        uses: zaproxy/action-baseline@v0.12.0
+        with:
+            target: 'https://game-verse.tech'
+            token: ${{ secrets.GITHUB_TOKEN }}
