@@ -5,7 +5,16 @@ import { Link } from 'react-router-dom';
 const Card = ({ title, meta, image, link, linkLabel }) => {
   return (
     <article className="card">
-      {image && <img className="card-media" src={image} alt="" />}
+      {image && (
+        <img
+          className="card-media"
+          src={image}
+          alt={title}
+          loading="lazy"
+          decoding="async"
+          fetchPriority="low"
+        />
+      )}
       <div className="card-body">
         <h3 className="card-title">{title}</h3>
         <p className="card-meta">{meta}</p>

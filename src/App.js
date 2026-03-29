@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 import Layout from './components/Layout/Layout';
@@ -5,7 +6,6 @@ import Home from './pages/Home/Home';
 import DiscoveryOracle from './pages/DiscoveryOracle/DiscoveryOracle';
 import HardwareChecker from './pages/HardwareChecker/HardwareChecker';
 import News from './pages/News/News';
-import TournamentBoard from './pages/TournamentBoard/TournamentBoard';
 import Contact from './pages/Contact/Contact';
 import VideoHub from './pages/VideoHub/VideoHub';
 import { AuthProvider } from './contexts/AuthContext';
@@ -17,8 +17,10 @@ import ResetPassword from './pages/ResetPassword/ResetPassword';
 import Dashboard from './pages/Dashboard/Dashboard';
 import Profile from './pages/Profile/Profile';
 import Games from './pages/Games/Games';
-import AdminPage from './pages/Admin/Admin';
 import { useAuth } from './contexts/AuthContext';
+
+const AdminPage = lazy(() => import('./pages/Admin/Admin'));
+const TournamentBoard = lazy(() => import('./pages/TournamentBoard/TournamentBoard'));
 
 const RootExperience = () => {
   const { isAuthenticated } = useAuth();
@@ -69,9 +71,11 @@ function App() {
           <Route
             path="/admin"
             element={
-              <ProtectedRoute>
-                <AdminPage />
-              </ProtectedRoute>
+              <Suspense fallback={<div className="section">Loading admin panel...</div>}>
+                <ProtectedRoute>
+                  <AdminPage />
+                </ProtectedRoute>
+              </Suspense>
             }
           />
 
@@ -96,9 +100,11 @@ function App() {
           <Route
             path="/events"
             element={
-              <ProtectedRoute>
-                <TournamentBoard />
-              </ProtectedRoute>
+              <Suspense fallback={<div className="section">Loading tournament board...</div>}>
+                <ProtectedRoute>
+                  <TournamentBoard />
+                </ProtectedRoute>
+              </Suspense>
             }
           />
 

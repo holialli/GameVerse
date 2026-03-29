@@ -1,12 +1,34 @@
 /* Home-specific styles */
 .hero {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: flex-start;
   min-height: clamp(420px, 70dvh, 620px);
   padding: clamp(18px, 4vw, 28px);
-  background: linear-gradient(180deg, rgba(11,15,23,0.2), rgba(11,15,23,0.95)),
-    url('/public/images/fighting.webp') center/cover no-repeat; 
+  overflow: hidden;
   border-bottom: 1px solid var(--border);
+}
+
+.hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(11,15,23,0.2), rgba(11,15,23,0.95));
+  z-index: 1;
+}
+
+.heroImage {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+}
+
+.heroContent {
+  position: relative;
+  z-index: 2;
 }
 

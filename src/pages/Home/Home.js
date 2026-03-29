@@ -3,13 +3,14 @@ import { Link } from 'react-router-dom';
 import styles from './Home.module.css'; 
 import Card from '../../components/Card/card';
 import AskAI from '../../components/AskAI/AskAI'; 
+import { optimizeUnsplashUrl } from '../../utils/imageOptimization';
 
 const defaultHighlights = [
   {
     id: 'h-1',
     title: 'Track Top Releases',
     meta: 'Discover trending and newly launched games.',
-    image: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&w=1200&q=80',
+    image: optimizeUnsplashUrl('https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&w=1200&q=80'),
     link: '/games',
     linkLabel: 'Browse Games',
   },
@@ -17,7 +18,7 @@ const defaultHighlights = [
     id: 'h-2',
     title: 'Build Your Profile',
     meta: 'Save preferences and personalize recommendations.',
-    image: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&w=1200&q=80',
+    image: optimizeUnsplashUrl('https://images.unsplash.com/photo-1550745165-9bc0b252726f?auto=format&fit=crop&w=1200&q=80'),
     link: '/profile',
     linkLabel: 'View Profile',
   },
@@ -25,7 +26,7 @@ const defaultHighlights = [
     id: 'h-3',
     title: 'Stay Updated',
     meta: 'Read fresh esports and gaming industry news.',
-    image: 'https://images.unsplash.com/photo-1486572788966-cfd3df1f5b42?auto=format&fit=crop&w=1200&q=80',
+    image: optimizeUnsplashUrl('https://images.unsplash.com/photo-1486572788966-cfd3df1f5b42?auto=format&fit=crop&w=1200&q=80'),
     link: '/news',
     linkLabel: 'Open News',
   },
@@ -41,7 +42,16 @@ const Home = () => {
   return (
     <>
       <section className={styles.hero}>
-        <div className="hero-content">
+        <img
+          src="/images/fighting.webp"
+          alt=""
+          aria-hidden="true"
+          className={styles.heroImage}
+          loading="eager"
+          decoding="async"
+          fetchPriority="high"
+        />
+        <div className={`hero-content ${styles.heroContent}`}>
           <p className="eyebrow">Welcome to GameVerse</p>
           <h1 className="headline">Explore worlds, master genres, and stay ahead of gaming culture</h1>
           <p className="subhead">Discover popular titles, learn about game genres, read the latest updates, and dive into our curated gallery — all in one grid-powered experience.</p>
