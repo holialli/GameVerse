@@ -4,6 +4,10 @@ const Contact = require('../models/Contact');
 const jwt = require('jsonwebtoken');
 const authMiddleware = require('../middlewares/authMiddleware');
 
+const resolveJwtSecret = () => {
+    return process.env.JWT_ACCESS_SECRET || process.env.JWT_SECRET || process.env.JWT_REFRESH_SECRET || null;
+};
+
 const sanitizeText = (value, maxLen) => {
     const text = String(value || '')
         .replace(/[<>]/g, '')
@@ -46,7 +50,11 @@ router.post('/', async (req, res) => {
 
         if (token) {
             try {
-                const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET || 'secret1');
+                const jwtSecret = resolveJwtSecret();
+                if (!jwtSecret) {
+                    throw new Error('JWT secret missing');
+                }
+                const decoded = jwt.verify(token, jwtSecret);
                 userId = decoded.id;
             } catch (e) {
                 // Keep request valid for guests even if token is stale.

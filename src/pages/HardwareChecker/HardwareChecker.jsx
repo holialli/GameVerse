@@ -2,10 +2,20 @@ import React, { useEffect, useMemo, useState } from 'react';
 import axiosInstance from '../../lib/axios';
 import styles from './HardwareChecker.module.css';
 
+const RAM_OPTIONS = [4, 8, 12, 16, 24, 32, 48, 64, 96, 128];
+
+const PLATFORM_OPTIONS = [
+  { value: 'pc', label: 'PC (Desktop)' },
+  { value: 'steamdeck', label: 'Steam Deck' },
+  { value: 'ps5', label: 'PlayStation 5' },
+  { value: 'xboxseriesx', label: 'Xbox Series X' },
+  { value: 'nintendoswitch', label: 'Nintendo Switch' },
+];
+
 const HardwareChecker = () => {
   const [libraryGames, setLibraryGames] = useState([]);
   const [hardware, setHardware] = useState([]);
-  const [form, setForm] = useState({ rawgId: '', cpuId: '', gpuId: '', ramGb: 16 });
+  const [form, setForm] = useState({ rawgId: '', cpuId: '', gpuId: '', ramGb: 16, platform: 'pc' });
   const [result, setResult] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
@@ -38,6 +48,7 @@ const HardwareChecker = () => {
           cpuId: firstCpu?._id || '',
           gpuId: firstGpu?._id || '',
           ramGb: 16,
+          platform: 'pc',
         });
       } catch (err) {
         setError('Failed to load compatibility data.');
@@ -62,6 +73,7 @@ const HardwareChecker = () => {
         cpuId: form.cpuId,
         gpuId: form.gpuId,
         ramGb: String(form.ramGb),
+        platform: form.platform,
       });
 
       const res = await axiosInstance.get(`/hardware/compatibility/${form.rawgId}?${params.toString()}`);
@@ -123,13 +135,26 @@ const HardwareChecker = () => {
 
         <label>
           RAM (GB)
-          <input
-            type="number"
-            min="4"
-            max="128"
+          <select
             value={form.ramGb}
             onChange={(e) => setForm((p) => ({ ...p, ramGb: Number(e.target.value) || 0 }))}
-          />
+          >
+            {RAM_OPTIONS.map((ramValue) => (
+              <option key={ramValue} value={ramValue}>{ramValue} GB</option>
+            ))}
+          </select>
+        </label>
+
+        <label>
+          Target Platform
+          <select
+            value={form.platform}
+            onChange={(e) => setForm((p) => ({ ...p, platform: e.target.value }))}
+          >
+            {PLATFORM_OPTIONS.map((platformOption) => (
+              <option key={platformOption.value} value={platformOption.value}>{platformOption.label}</option>
+            ))}
+          </select>
         </label>
 
         <button type="submit" disabled={isChecking || !form.rawgId || !form.cpuId || !form.gpuId}>
@@ -144,6 +169,7 @@ const HardwareChecker = () => {
           <h2>{result.game?.title}</h2>
           <p><strong>Status:</strong> {result.status} ({result.tier})</p>
           <p><strong>Main Bottleneck:</strong> {result.bottleneck}</p>
+          <p><strong>Target Platform:</strong> {result.details?.platform?.label || 'PC (Desktop)'}</p>
           <p><strong>Estimated FPS:</strong> Low {result.estimatedFps?.low} | Medium {result.estimatedFps?.medium} | High {result.estimatedFps?.high}</p>
 
           <h3>Optimization Tips</h3>

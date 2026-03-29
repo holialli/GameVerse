@@ -1,6 +1,4 @@
-const dotenv = require('dotenv');
-dotenv.config();
-
+const http = require('http');
 const mongoose = require('mongoose');
 const dns = require('dns');
 const { getProductionSecrets } = require('./config/secrets');
@@ -27,21 +25,36 @@ const startServer = async () => {
   applyCommonDefaults();
 
   const shouldLoadAwsSecrets = process.env.USE_AWS_SECRETS === 'true'
-    || (process.env.NODE_ENV === 'production' && Boolean(process.env.AWS_ACCESS_KEY_ID));
+    || process.env.NODE_ENV === 'production';
 
   if (shouldLoadAwsSecrets) {
     try {
       const secrets = await getProductionSecrets();
       applySecretValues(secrets);
-      console.log('Loaded production secrets from AWS Secrets Manager');
+      console.log('✓ Loaded production secrets from AWS Secrets Manager');
+      // Log secret presence without exposing values
+      if (process.env.GEMINI_API_KEY) console.log('✓ GEMINI_API_KEY loaded successfully');
+      if (process.env.RAWG_API_KEY) console.log('✓ RAWG_API_KEY loaded successfully');
+      if (process.env.MONGODB_URI) console.log('✓ MONGODB_URI loaded successfully');
     } catch (err) {
-      console.warn('AWS secrets unavailable. Falling back to existing environment values.');
+      console.error('✗ Failed to load production secrets from AWS Secrets Manager:', err.message);
+      process.exit(1);
     }
+  } else {
+    console.log('⚠ Running in non-production mode. Secrets not loaded from AWS.');
+    if (process.env.GEMINI_API_KEY) console.log('✓ GEMINI_API_KEY found in environment');
+    if (process.env.RAWG_API_KEY) console.log('✓ RAWG_API_KEY found in environment');
   }
 
   const app = require('./app');
+  const { initSocket } = require('./socket');
   const PORT = Number(process.env.PORT || 5000);
-  const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/gameverse';
+  const MONGODB_URI = process.env.MONGODB_URI;
+
+  if (!MONGODB_URI) {
+    console.error('Missing required MONGODB_URI. Provide it through AWS Secrets Manager or environment configuration.');
+    process.exit(1);
+  }
 
   try {
     await mongoose.connect(MONGODB_URI, {});
@@ -61,7 +74,10 @@ const startServer = async () => {
     process.exit(0);
   });
 
-  app.listen(PORT, () => {
+  const server = http.createServer(app);
+  initSocket(server);
+
+  server.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
   });
 };

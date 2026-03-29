@@ -9,6 +9,9 @@ const morgan = require('morgan');
 
 const app = express();
 
+// Required behind Cloudflare/reverse proxies so req.ip is derived safely.
+app.set('trust proxy', 1);
+
 // Lean logging
 app.use(morgan('combined'));
 
@@ -80,7 +83,19 @@ app.use('/public', express.static('public'));
 
 // Health check route
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', message: 'Server is running' });
+  const apiKeysLoaded = {
+    gemini: !!process.env.GEMINI_API_KEY,
+    rawg: !!process.env.RAWG_API_KEY,
+    mongodb: !!process.env.MONGODB_URI,
+  };
+  
+  res.json({ 
+    status: 'OK', 
+    message: 'Server is running',
+    environment: process.env.NODE_ENV,
+    apiKeysLoaded,
+    timestamp: new Date().toISOString(),
+  });
 });
 
 // Routes
@@ -95,6 +110,7 @@ app.use('/api/ai', require('./routes/aiRoutes'));
 app.use('/api/hardware', require('./routes/hardwareRoutes'));
 app.use('/api/events', require('./routes/eventRoutes'));
 app.use('/api/news', require('./routes/newsRoutes'));
+app.use('/', require('./routes/sitemapRoutes'));
 
 // 404 handler
 app.use((req, res) => {
@@ -104,11 +120,17 @@ app.use((req, res) => {
 // Global error handler
 app.use((err, req, res, next) => {
   const referenceId = require('crypto').randomUUID();
-  console.error(`❌ Error [${referenceId}]:`, err.stack);
+  console.error(`[ERROR ${referenceId}] {${err.statusCode || 500}]:`, {
+    message: err.message,
+    code: err.code,
+    stack: err.stack,
+  });
 
   const statusCode = err.statusCode || 500;
+  
+  // In production, return generic message; in development, expose details
   const message = process.env.NODE_ENV === 'production'
-    ? 'An unexpected error occurred.'
+    ? (err.message === 'Email service failed: Message failed: 550 API key is invalid' ? 'Email service temporarily unavailable' : 'An unexpected error occurred.')
     : (err.message || 'Internal Server Error');
 
   res.status(statusCode).json({

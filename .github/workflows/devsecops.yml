@@ -5,6 +5,7 @@ on:
     branches:
       - main
     paths:
+      - '.github/workflows/devsecops.yml'
       - 'server/**'
       - 'src/**'
       - 'public/**'
@@ -80,7 +81,7 @@ jobs:
 
       # FRONTEND: Build, Scan, and Push
       - name: Build Frontend Image
-        run: docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/gameverse-frontend:latest .
+        run: docker build --build-arg REACT_APP_API_URL=${{ secrets.REACT_APP_API_URL }} -t ${{ secrets.DOCKERHUB_USERNAME }}/gameverse-frontend:latest .
 
       - name: Trivy CVE Scan (Frontend Image)
         uses: aquasecurity/trivy-action@master
@@ -98,6 +99,9 @@ jobs:
     needs: build_and_push
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
       - name: Configure Cloud Identity
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -106,29 +110,59 @@ jobs:
           aws-region: ap-south-1
 
       - name: Execute Remote Deployment Script (SSM)
-        uses: peterkimzz/aws-ssm-send-command@v1.1.1
-        with:
-          instance-ids: "i-0d474f7b919b56b3d"
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ap-south-1
-          comment: "Automated rolling update for GameVerse Production"
-          working-directory: "/home/ubuntu"
-          command: |
-            # Syncing latest images from registry
-            sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/gameverse-backend:latest
-            sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/gameverse-frontend:latest
-            
-            # Atomic container rotation
-            sudo docker rm -f gv-api gv-ui || true
-            
-            # Runtime execution with env injection
-            sudo docker run -d --name gv-api --env-file /home/ubuntu/backend.env -p 5000:5000 ${{ secrets.DOCKERHUB_USERNAME }}/gameverse-backend:latest
-            sudo docker run -d --name gv-ui --env-file /home/ubuntu/frontend.env -p 80:3000 ${{ secrets.DOCKERHUB_USERNAME }}/gameverse-frontend:latest
-            
-            # Post-deployment hygiene
-            sudo docker image prune -f
-            sleep 30
+        env:
+          INSTANCE_ID: ${{ secrets.INSTANCE_ID }}
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+        run: |
+          NGINX_CONF_B64=$(base64 -w 0 server/config/nginx.conf)
+
+          SSM_PARAMETERS=$(cat <<'EOF'
+          commands=[
+            "sudo docker network create gameverse-net || true",
+            "sudo docker rm -f nginx-proxy gv-ui gv-api || true",
+            "sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/gameverse-backend:latest",
+            "sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/gameverse-frontend:latest",
+            "echo '__NGINX_CONF_B64__' | base64 -d | sudo tee /home/ubuntu/nginx.conf >/dev/null",
+            "test -f /home/ubuntu/nginx.conf || (echo Missing /home/ubuntu/nginx.conf && exit 1)",
+            "test -f /home/ubuntu/cert.pem || (echo Missing /home/ubuntu/cert.pem && exit 1)",
+            "test -f /home/ubuntu/key.pem || (echo Missing /home/ubuntu/key.pem && exit 1)",
+            "sudo docker run -d --name gv-api --network gameverse-net -e NODE_ENV=production -e USE_AWS_SECRETS=true -e AWS_REGION=ap-south-1 -e AWS_SECRET_NAME=prod/Gameverse ${{ secrets.DOCKERHUB_USERNAME }}/gameverse-backend:latest",
+            "sudo docker run -d --name gv-ui --network gameverse-net ${{ secrets.DOCKERHUB_USERNAME }}/gameverse-frontend:latest",
+            "sudo docker run -d --name nginx-proxy --network gameverse-net --restart always -p 80:80 -p 443:443 -v /home/ubuntu/nginx.conf:/etc/nginx/nginx.conf:ro -v /home/ubuntu/cert.pem:/etc/nginx/certs/cert.pem:ro -v /home/ubuntu/key.pem:/etc/nginx/certs/key.pem:ro nginx:1.27-alpine",
+            "sudo docker image prune -f",
+            "sleep 30"
+          ]
+          EOF
+          )
+
+          SSM_PARAMETERS=${SSM_PARAMETERS/__NGINX_CONF_B64__/$NGINX_CONF_B64}
+
+          aws ssm send-command \
+            --instance-ids "$INSTANCE_ID" \
+            --document-name "AWS-RunShellScript" \
+            --comment "Automated rolling update for GameVerse Production" \
+            --region "ap-south-1" \
+            --parameters "$SSM_PARAMETERS"
+
+      - name: Wait for Health Check
+        run: |
+          echo "Waiting for backend to be ready..."
+          for i in {1..30}; do
+            echo "Attempt $i/30..."
+            response=$(curl -s -k https://game-verse.tech/api/health || true)
+            if echo "$response" | grep -q '"status":"OK"'; then
+              echo "✓ Backend is ready and responding"
+              if echo "$response" | jq -e . >/dev/null 2>&1; then
+                echo "$response" | jq '.'
+              else
+                echo "$response"
+              fi
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "✗ Backend health check timed out"
+          exit 1
 
       - name: ZAP Baseline Scan
         uses: zaproxy/action-baseline@v0.12.0

@@ -156,3 +156,26 @@
   cursor: pointer;
 }
 .aiBoxFixed a { color: var(--primary); }
+
+.chatMessage {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--bg-elev) 80%, var(--bg));
+  padding: 8px;
+  margin-bottom: 8px;
+}
+
+.chatMeta {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 0.75rem;
+  margin-bottom: 4px;
+}
+
+.chatBody {
+  color: var(--text);
+  white-space: pre-wrap;
+  word-break: break-word;
+}

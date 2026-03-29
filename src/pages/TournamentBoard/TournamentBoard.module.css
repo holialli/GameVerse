@@ -14,6 +14,89 @@
   color: var(--muted);
 }
 
+.openCreateBtn {
+  margin-top: 0.85rem;
+  border: 0;
+  border-radius: 10px;
+  padding: 0.52rem 0.78rem;
+  background: linear-gradient(90deg, var(--primary), var(--accent));
+  color: #08131f;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.createForm {
+  margin-top: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-elev);
+  padding: 0.9rem;
+}
+
+.createForm h2 {
+  margin: 0 0 0.7rem;
+  font-size: 1rem;
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.55rem;
+}
+
+.formGrid label,
+.createForm > label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+.createForm input,
+.createForm select,
+.createForm textarea {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--bg-elev) 80%, var(--bg));
+  color: var(--text);
+  padding: 0.52rem 0.6rem;
+  font-family: inherit;
+}
+
+.createForm textarea {
+  margin-top: 0.55rem;
+}
+
+.formHint {
+  margin: 0.45rem 0 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.createForm button,
+.joinBtn {
+  margin-top: 0.6rem;
+  border: 0;
+  border-radius: 8px;
+  padding: 0.45rem 0.7rem;
+  background: linear-gradient(90deg, var(--primary), var(--accent));
+  color: #08131f;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.joinBtn {
+  width: 100%;
+}
+
+.createForm button:disabled,
+.joinBtn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
 .sectionTitle {
   margin: 1.2rem 0 0.5rem;
   color: var(--text);
@@ -25,6 +108,15 @@
   border: 1px solid #6d2d3f;
   background: #2c131b;
   color: #ffd4dc;
+  border-radius: 10px;
+  padding: 0.75rem;
+}
+
+.success {
+  margin-top: 1rem;
+  border: 1px solid #23704d;
+  background: #0f2a1f;
+  color: #c4ffe2;
   border-radius: 10px;
   padding: 0.75rem;
 }

@@ -9,6 +9,18 @@ GameVerse is a high-performance gaming platform built on the MERN stack and depl
 
 ---
 
+### Major Updates
+This section must be updated whenever a major feature, security behavior, or platform workflow changes.
+
+#### 2026-03-29
+* **Auth Secret Fallback:** Authentication and token verification now resolve JWT secrets from `JWT_ACCESS_SECRET`, `JWT_SECRET`, or `JWT_REFRESH_SECRET` to reduce environment mismatch failures.
+* **Refresh Token Resilience:** Refresh-token Redis operations now include defensive error handling to prevent unhandled cache outages from causing unstable auth flows.
+* **Proxy-Aware Security:** Express now trusts the first reverse proxy hop, improving client IP accuracy behind Cloudflare and strengthening rate-limit behavior.
+* **Socket Auth Alignment:** WebSocket authentication now follows the same JWT secret fallback strategy used by HTTP auth middleware.
+* **Redis Reliability Improvements:** Redis retry/backoff behavior and connection lifecycle logging were improved for better production observability and transient failure recovery.
+
+---
+
 ### System Architecture and DevOps
 The deployment architecture utilizes a multi-layered defense strategy to ensure high availability and data integrity.
 

@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
-    "seed:community": "node scripts/seedCommunityState.js"
+    "seed:community": "node scripts/seedCommunityState.js",
+    "seed:gallery": "node scripts/seedGalleryFamousVideos.js"
   },
   "keywords": [
     "mern",
@@ -15,6 +16,16 @@
   ],
   "author": "",
   "license": "ISC",
+  "overrides": {
+    "path-to-regexp": "0.1.13",
+    "picomatch": "2.3.2",
+    "minimatch@3.1.5": {
+      "brace-expansion": "1.1.13"
+    },
+    "minimatch@10.2.4": {
+      "brace-expansion": "5.0.5"
+    }
+  },
   "dependencies": {
     "@aws-sdk/client-secrets-manager": "^3.909.0",
     "@google/genai": "^1.46.0",
@@ -22,7 +33,6 @@
     "bcryptjs": "^2.4.3",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
-    "dotenv": "^16.0.3",
     "express": "^4.18.2",
     "express-mongo-sanitize": "^2.2.0",
     "express-rate-limit": "^6.11.2",
@@ -34,8 +44,8 @@
     "mongodb": "^7.1.0",
     "mongoose": "^9.3.1",
     "morgan": "^1.10.1",
-    "multer": "^1.4.5-lts.1",
-    "nodemailer": "^8.0.3",
+    "multer": "^2.1.1",
+    "nodemailer": "^8.0.4",
     "socket.io": "^4.8.3",
     "xss-clean": "^0.1.1"
   },

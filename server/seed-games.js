@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 
 const mongoose = require('mongoose');
-require('dotenv').config();
 
 const Game = require('./models/Game');
 
@@ -13,11 +12,11 @@ const seedGames = async () => {
       useUnifiedTopology: true,
     });
 
-    console.log('✅ Connected to MongoDB\n');
+    console.log('Connected to MongoDB\n');
 
     // Delete existing games
     await Game.deleteMany({});
-    console.log('🗑️  Cleared existing games\n');
+    console.log('Cleared existing games\n');
 
     // Create sample games
     const games = [
@@ -85,19 +84,19 @@ const seedGames = async () => {
 
     const createdGames = await Game.insertMany(games);
     
-    console.log('✅ Successfully created games:\n');
+    console.log('Successfully created games:\n');
     createdGames.forEach(game => {
-      console.log(`   📦 ${game.title} (${game.genre})`);
+      console.log(`   ${game.title} (${game.genre})`);
       console.log(`      Buy: $${game.buyPrice} | Rent: $${game.rentPrice}/7d`);
       console.log(`      Rating: ${game.rating}/10`);
       console.log('');
     });
 
-    console.log(`✅ Total games created: ${createdGames.length}\n`);
+    console.log(`Total games created: ${createdGames.length}\n`);
 
     process.exit(0);
   } catch (error) {
-    console.error('❌ Error:', error.message);
+    console.error('Error:', error.message);
     process.exit(1);
   }
 };

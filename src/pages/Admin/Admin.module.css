@@ -1,7 +1,7 @@
 .page {
   max-width: 1220px;
   margin: 0 auto;
-  padding: 1.4rem 1rem 2.8rem;
+  padding: 1.4rem 1.25rem 2.8rem;
 }
 
 .hero {
@@ -27,9 +27,9 @@
 
 .stats {
   display: grid;
-  grid-template-columns: repeat(6, minmax(150px, 1fr));
-  gap: 0.7rem;
-  margin-bottom: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.5rem;
+  margin-bottom: 0.7rem;
 }
 
 .card,
@@ -59,12 +59,12 @@
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(320px, 1fr));
-  gap: 0.8rem;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 0.65rem;
 }
 
 .panel {
-  padding: 1rem;
+  padding: 0.8rem;
 }
 
 .panelWide {
@@ -276,6 +276,30 @@
   margin-top: 0.8rem;
 }
 
+.reviewQueue {
+  margin-top: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+.reviewQueue button {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  text-align: left;
+  padding: 0.48rem 0.62rem;
+  color: var(--text);
+  background: color-mix(in srgb, var(--bg-elev) 85%, var(--bg));
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.reviewQueue button:hover {
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
+}
+
 .playerList,
 .auditList {
   list-style: none;
@@ -303,6 +327,85 @@
   color: var(--muted);
 }
 
+.videoList {
+  list-style: none;
+  padding: 0;
+  margin: 0.75rem 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.videoItem {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--bg-elev) 80%, var(--bg));
+  padding: 0.6rem 0.7rem;
+  display: flex;
+  justify-content: space-between;
+  gap: 0.7rem;
+  align-items: flex-start;
+}
+
+.videoMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.videoMeta small,
+.videoMeta p {
+  color: var(--muted);
+  margin: 0;
+}
+
+.videoLink {
+  color: var(--accent);
+  text-decoration: none;
+  word-break: break-all;
+  font-size: 0.82rem;
+}
+
+.videoLink:hover {
+  text-decoration: underline;
+}
+
+.videoControls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  min-width: 180px;
+}
+
+.videoControls input {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--bg-elev) 80%, var(--bg));
+  color: var(--text);
+  padding: 0.42rem 0.55rem;
+}
+
+.joinRequestRow {
+  border-top: 1px dashed var(--border);
+  padding-top: 0.4rem;
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.subSectionTitle {
+  margin: 1rem 0 0.35rem;
+  font-size: 0.96rem;
+  color: var(--text);
+}
+
+@media (max-width: 1200px) {
+  .grid {
+    grid-template-columns: repeat(2, minmax(300px, 1fr));
+  }
+}
+
 @media (max-width: 900px) {
   .hero {
     flex-direction: column;
@@ -315,5 +418,10 @@
 
   .grid {
     grid-template-columns: 1fr;
+  }
+
+  .videoControls {
+    min-width: 0;
+    width: 100%;
   }
 }

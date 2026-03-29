@@ -2,6 +2,35 @@ const nodemailer = require('nodemailer');
 
 // For development/testing: use ethereal email (fake SMTP service)
 const getTransporter = async () => {
+  const smtpHost = process.env.SMTP_HOST;
+  const smtpPort = Number(process.env.SMTP_PORT || 587);
+  const smtpUser = process.env.SMTP_USER;
+  const smtpPass = process.env.SMTP_PASS;
+
+  if (smtpHost && smtpUser && smtpPass) {
+    console.log(`[EMAIL] Initializing SMTP transporter: host=${smtpHost}, port=${smtpPort}, user=${smtpUser.substring(0, 5)}***, secure=${smtpPort === 465}`);
+    const transporter = nodemailer.createTransport({
+      host: smtpHost,
+      port: smtpPort,
+      secure: smtpPort === 465,
+      auth: {
+        user: smtpUser,
+        pass: smtpPass,
+      },
+    });
+    
+    // Test connection
+    transporter.verify((error, success) => {
+      if (error) {
+        console.error('[EMAIL] SMTP verification failed:', error);
+      } else {
+        console.log('[EMAIL] SMTP connection verified successfully');
+      }
+    });
+    
+    return transporter;
+  }
+
   if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test' || !process.env.EMAIL_USER) {
     // Create test account
     try {
@@ -41,9 +70,9 @@ exports.sendWelcomeEmail = async (email, name) => {
     const emailTransporter = await getTransporter();
     
     const mailOptions = {
-      from: process.env.EMAIL_USER || 'noreply@gameverse.com',
+      from: process.env.CONTACT_EMAIL || process.env.EMAIL_USER || 'noreply@gameverse.com',
       to: email,
-      subject: '🎮 Welcome to GameVerse!',
+      subject: 'Welcome to GameVerse!',
       html: `
         <h2>Welcome to GameVerse, ${name}!</h2>
         <p>Thank you for joining our gaming community.</p>
@@ -78,9 +107,9 @@ exports.sendPasswordChangedEmail = async (email, name) => {
     const emailTransporter = await getTransporter();
     
     const mailOptions = {
-      from: process.env.EMAIL_USER || 'noreply@gameverse.com',
+      from: process.env.CONTACT_EMAIL || process.env.EMAIL_USER || 'noreply@gameverse.com',
       to: email,
-      subject: '🔐 Your Password Has Been Changed',
+      subject: 'Your Password Has Been Changed',
       html: `
         <h2>Password Changed Successfully</h2>
         <p>Hi ${name},</p>
@@ -105,13 +134,14 @@ exports.sendPasswordChangedEmail = async (email, name) => {
 // Send password reset email
 exports.sendPasswordResetEmail = async (email, resetToken, name) => {
   try {
+    console.log(`[EMAIL] Attempting to send password reset email to: ${email}`);
     const emailTransporter = await getTransporter();
     const resetLink = `${process.env.CLIENT_URL}/reset-password?token=${resetToken}`;
     
     const mailOptions = {
-      from: process.env.EMAIL_USER || 'noreply@gameverse.com',
+      from: process.env.CONTACT_EMAIL || process.env.EMAIL_USER || 'noreply@gameverse.com',
       to: email,
-      subject: '🔑 Password Reset Request',
+      subject: 'Password Reset Request',
       html: `
         <h2>Password Reset Request</h2>
         <p>Hi ${name},</p>
@@ -124,13 +154,31 @@ exports.sendPasswordResetEmail = async (email, resetToken, name) => {
       `,
     };
 
+    console.log(`[EMAIL] Mail options prepared - from: ${mailOptions.from}, to: ${mailOptions.to}`);
+    const startTime = Date.now();
     const info = await emailTransporter.sendMail(mailOptions);
-    console.log('Password reset email sent:', info.messageId);
+    const sendTime = Date.now() - startTime;
+    
+    console.log(`[EMAIL] Password reset email sent successfully - MessageID: ${info.messageId}, Time: ${sendTime}ms, Response: ${info.response}`);
+    const previewUrl = nodemailer.getTestMessageUrl(info);
+    if (previewUrl) {
+      console.log('[EMAIL] Password reset preview URL:', previewUrl);
+      info.previewUrl = previewUrl;
+    }
     return info;
   } catch (error) {
-    if (process.env.NODE_ENV !== 'test') {
-      console.error('Error sending password reset email:', error);
-    }
+    console.error('[EMAIL] ERROR sending password reset email:', {
+      code: error.code,
+      message: error.message,
+      command: error.command,
+      response: error.response,
+      stack: error.stack
+    });
+    // Don't expose implementation details to client - log server-side instead
+    const err = new Error('Failed to send password reset email. Please contact support if the issue persists.');
+    err.statusCode = 500;
+    err.isEmailError = true;
+    throw err;
   }
 };
 
@@ -140,9 +188,9 @@ exports.sendGameCreatedEmail = async (email, name, gameTitle) => {
     const emailTransporter = await getTransporter();
     
     const mailOptions = {
-      from: process.env.EMAIL_USER || 'noreply@gameverse.com',
+      from: process.env.CONTACT_EMAIL || process.env.EMAIL_USER || 'noreply@gameverse.com',
       to: email,
-      subject: `🎮 Your Game "${gameTitle}" Has Been Created!`,
+      subject: `Your Game "${gameTitle}" Has Been Created!`,
       html: `
         <h2>Game Added Successfully!</h2>
         <p>Hi ${name},</p>
@@ -169,9 +217,9 @@ exports.sendGamePurchaseEmail = async (email, name, gameTitle, price) => {
     const emailTransporter = await getTransporter();
     
     const mailOptions = {
-      from: process.env.EMAIL_USER || 'noreply@gameverse.com',
+      from: process.env.CONTACT_EMAIL || process.env.EMAIL_USER || 'noreply@gameverse.com',
       to: email,
-      subject: '🎮 Game Purchase Confirmation - GameVerse',
+      subject: 'Game Purchase Confirmation - GameVerse',
       html: `
         <h2>Purchase Confirmed, ${name}!</h2>
         <p>Thank you for purchasing a game on GameVerse.</p>
@@ -179,7 +227,7 @@ exports.sendGamePurchaseEmail = async (email, name, gameTitle, price) => {
         <div style="background: #f0f0f0; padding: 15px; border-radius: 5px;">
           <p><strong>Game:</strong> ${gameTitle}</p>
           <p><strong>Price:</strong> $${price.toFixed(2)}</p>
-          <p><strong>Status:</strong> ✅ Permanently Owned</p>
+          <p><strong>Status:</strong> Permanently Owned</p>
         </div>
         
         <p>You can now access this game anytime from your <a href="${process.env.CLIENT_URL}/dashboard">dashboard</a>.</p>
@@ -205,9 +253,9 @@ exports.sendGameRentalEmail = async (email, name, gameTitle, price, expiryDate) 
     const emailTransporter = await getTransporter();
     
     const mailOptions = {
-      from: process.env.EMAIL_USER || 'noreply@gameverse.com',
+      from: process.env.CONTACT_EMAIL || process.env.EMAIL_USER || 'noreply@gameverse.com',
       to: email,
-      subject: '🎮 Game Rental Confirmation - GameVerse',
+      subject: 'Game Rental Confirmation - GameVerse',
       html: `
         <h2>Rental Confirmed, ${name}!</h2>
         <p>Your game rental has been confirmed on GameVerse.</p>

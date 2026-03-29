@@ -1,3 +1,32 @@
-# https://www.robotstxt.org/robotstxt.html
+# SEO Crawl Optimization for GameVerse
+# Allows Googlebot and major search engines, blocks aggressive scrapers
+
+User-agent: Googlebot
+Allow: /
+Crawl-delay: 5
+
+User-agent: Bingbot
+Allow: /
+Crawl-delay: 5
+
 User-agent: *
-Disallow:
+Allow: /api/
+Disallow: /admin/
+Disallow: /private/
+Disallow: /dashboard/
+
+# Block aggressive scrapers to protect EC2 resources
+User-agent: AhrefsBot
+Disallow: /
+
+User-agent: SemrushBot
+Disallow: /
+
+User-agent: MJ12bot
+Disallow: /
+
+User-agent: DotBot
+Disallow: /
+
+# Sitemap location
+Sitemap: https://game-verse.tech/sitemap.xml

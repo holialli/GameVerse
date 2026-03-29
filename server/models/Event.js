@@ -14,6 +14,26 @@ const eventSchema = new mongoose.Schema(
     prizePool: { type: String, default: '' },
     pointsAwarded: { type: Number, default: 0 },
     participants: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+    requestedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+    approvalStatus: {
+      type: String,
+      enum: ['pending', 'approved', 'rejected'],
+      default: 'approved',
+    },
+    approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+    approvedAt: { type: Date, default: null },
+    joinRequests: {
+      type: [
+        {
+          userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+          status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
+          requestedAt: { type: Date, default: Date.now },
+          reviewedAt: { type: Date, default: null },
+          reviewedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+        },
+      ],
+      default: [],
+    },
     winner: {
       userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
       username: { type: String, default: '' },

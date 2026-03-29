@@ -35,6 +35,11 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
+  min-height: 100%;
+}
+
+.bodyText {
+  flex: 1;
 }
 
 .errorText {
@@ -57,7 +62,7 @@
 }
 
 .sourceRow {
-  margin-top: 10px;
+  margin-top: auto;
   display: flex;
   justify-content: space-between;
   align-items: center;

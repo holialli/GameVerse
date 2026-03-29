@@ -3,8 +3,15 @@ const Joi = require('joi');
 exports.registerSchema = Joi.object({
   name: Joi.string().required().min(2).max(50),
   email: Joi.string().email().required(),
-  password: Joi.string().required().min(6),
-  confirmPassword: Joi.string().required().min(6),
+  password: Joi.string()
+    .required()
+    .min(8)
+    .pattern(/^(?=.*\d)(?=.*[^A-Za-z0-9]).+$/)
+    .messages({
+      'string.pattern.base': 'Password must include at least one number and one symbol',
+      'string.min': 'Password must be at least 8 characters long',
+    }),
+  confirmPassword: Joi.string().required().min(8),
 });
 
 exports.loginSchema = Joi.object({

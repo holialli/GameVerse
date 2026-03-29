@@ -17,7 +17,14 @@ export const gameAPI = {
     if (genre) params.append('genre', genre);
     if (platform) params.append('platform', platform);
     if (sort) params.append('sort', sort);
-    return fetch(`${API_BASE_URL}/games/search?${params}`, { headers: { Authorization: `Bearer ${getToken()}` } }).then(res => res.json());
+    return fetch(`${API_BASE_URL}/games/search?${params}`, { headers: { Authorization: `Bearer ${getToken()}` } })
+      .then(async (res) => {
+        const payload = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          throw new Error(payload?.message || payload?.error || 'Failed to load global game radar');
+        }
+        return payload;
+      });
   },
   getGameById: (id) => fetch(`${API_BASE_URL}/games/${id}`, { headers: { Authorization: `Bearer ${getToken()}` } }).then(res => res.json()),
   createGame: (gameData) => { /* FormData parsing removed for simplicity */ return Promise.resolve(); },
@@ -36,6 +43,10 @@ export const userAPI = {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` },
     body: JSON.stringify(payload),
+  }).then(res => res.json()),
+  removeLibraryGame: (rawgId) => fetch(`${API_BASE_URL}/users/games/${rawgId}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${getToken()}` },
   }).then(res => res.json()),
   getLeaderboardPreview: () => fetch(`${API_BASE_URL}/users/leaderboard/preview`).then(res => res.json()),
 };

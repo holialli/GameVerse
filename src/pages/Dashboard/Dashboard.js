@@ -13,9 +13,46 @@ const Dashboard = () => {
   const [adminOverview, setAdminOverview] = useState({ stats: {}, logs: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [busyId, setBusyId] = useState('');
 
   const watchlistCount = useMemo(() => library.filter((g) => g.status === 'watchlist').length, [library]);
   const completedCount = useMemo(() => library.filter((g) => g.status === 'completed').length, [library]);
+  const libraryGames = useMemo(() => library.filter((g) => g.status !== 'watchlist'), [library]);
+  const watchlistGames = useMemo(() => library.filter((g) => g.status === 'watchlist'), [library]);
+
+  const updateLibraryStatus = async (game, nextStatus) => {
+    try {
+      setBusyId(`${game.rawgId}-status`);
+      await userAPI.addOrUpdateLibraryGame({
+        rawgId: game.rawgId,
+        rawgSlug: game.rawgSlug,
+        title: game.title,
+        coverUrl: game.coverUrl,
+        status: nextStatus,
+      });
+      setLibrary((prev) => prev.map((item) => (
+        Number(item.rawgId) === Number(game.rawgId)
+          ? { ...item, status: nextStatus }
+          : item
+      )));
+    } catch (err) {
+      setError(err?.message || 'Failed to update game status');
+    } finally {
+      setBusyId('');
+    }
+  };
+
+  const removeFromLibrary = async (game) => {
+    try {
+      setBusyId(`${game.rawgId}-remove`);
+      await userAPI.removeLibraryGame(game.rawgId);
+      setLibrary((prev) => prev.filter((item) => Number(item.rawgId) !== Number(game.rawgId)));
+    } catch (err) {
+      setError(err?.message || 'Failed to remove game from library');
+    } finally {
+      setBusyId('');
+    }
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -150,15 +187,79 @@ const Dashboard = () => {
         </article>
 
         <article className={styles.panel}>
-          <h2>Recently Tracked Games</h2>
-          {library.length === 0 ? (
-            <p className={styles.empty}>No games tracked yet. Add a few from Game Radar to build your profile.</p>
+          <h2>Library</h2>
+          {libraryGames.length === 0 ? (
+            <p className={styles.empty}>No games in library yet. Add games from Game Radar.</p>
           ) : (
             <ul className={styles.list}>
-              {library.slice(0, 6).map((g) => (
-                <li key={`${g.rawgId}-${g.status}`} className={styles.row}>
-                  <span>{g.title}</span>
-                  <span className={styles.badge}>{g.status}</span>
+              {libraryGames.slice(0, 8).map((g) => (
+                <li key={`${g.rawgId}-${g.status}`} className={styles.rowStack}>
+                  <div className={styles.rowTop}>
+                    <span>{g.title}</span>
+                    <span className={styles.badge}>{g.status}</span>
+                  </div>
+                  <div className={styles.rowActions}>
+                    <select
+                      value={g.status}
+                      onChange={(e) => updateLibraryStatus(g, e.target.value)}
+                      disabled={busyId.startsWith(`${g.rawgId}-`)}
+                    >
+                      <option value="library">Library</option>
+                      <option value="completed">Completed</option>
+                      <option value="dropped">Dropped</option>
+                      <option value="watchlist">Move to Watchlist</option>
+                    </select>
+                    <button
+                      type="button"
+                      className={styles.removeBtn}
+                      onClick={() => removeFromLibrary(g)}
+                      disabled={busyId.startsWith(`${g.rawgId}-`)}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </article>
+
+        <article className={styles.panel}>
+          <h2>Watchlist</h2>
+          {watchlistGames.length === 0 ? (
+            <p className={styles.empty}>Your watchlist is empty.</p>
+          ) : (
+            <ul className={styles.list}>
+              {watchlistGames.slice(0, 8).map((g) => (
+                <li key={`${g.rawgId}-${g.status}`} className={styles.rowStack}>
+                  <div className={styles.rowTop}>
+                    <span>{g.title}</span>
+                    <span className={styles.badge}>watchlist</span>
+                  </div>
+                  <div className={styles.rowActions}>
+                    <button
+                      type="button"
+                      onClick={() => updateLibraryStatus(g, 'library')}
+                      disabled={busyId.startsWith(`${g.rawgId}-`)}
+                    >
+                      Move to Library
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => updateLibraryStatus(g, 'completed')}
+                      disabled={busyId.startsWith(`${g.rawgId}-`)}
+                    >
+                      Mark Complete
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.removeBtn}
+                      onClick={() => removeFromLibrary(g)}
+                      disabled={busyId.startsWith(`${g.rawgId}-`)}
+                    >
+                      Remove
+                    </button>
+                  </div>
                 </li>
               ))}
             </ul>

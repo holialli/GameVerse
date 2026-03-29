@@ -3,76 +3,141 @@ import styles from './Games.module.css';
 import { gameAPI, userAPI } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 
+const COMMON_GENRES = [
+  'Action',
+  'Adventure',
+  'RPG',
+  'Shooter',
+  'Battle Royale',
+  'Sports',
+  'Strategy',
+  'Simulation',
+  'Racing',
+  'Puzzle',
+  'Sandbox',
+  'Indie',
+  'Horror',
+];
+
+const COMMON_PLATFORMS = [
+  'PC',
+  'PlayStation',
+  'Xbox',
+  'Nintendo Switch',
+  'Nintendo',
+  'Mobile',
+  'Steam Deck',
+  'Linux',
+  'MacOS',
+];
+
 const Games = () => {
   const { user } = useAuth();
-  const [search, setSearch] = useState('elden ring');
+  const [search, setSearch] = useState('');
   const [selectedGenre, setSelectedGenre] = useState('all');
   const [selectedPlatform, setSelectedPlatform] = useState('all');
   const [games, setGames] = useState([]);
+  const [trackedById, setTrackedById] = useState({});
   const [loading, setLoading] = useState(false);
   const [savingId, setSavingId] = useState(null);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
 
-  const runSearch = useCallback(async (term = search) => {
+  const refreshTrackedGames = useCallback(async () => {
+    try {
+      const libraryRes = await userAPI.getLibrary();
+      const libraryGames = Array.isArray(libraryRes?.games) ? libraryRes.games : [];
+      const next = libraryGames.reduce((acc, item) => {
+        acc[String(item.rawgId)] = item.status || 'library';
+        return acc;
+      }, {});
+      setTrackedById(next);
+    } catch (err) {
+      // Non-blocking for page usage.
+    }
+  }, []);
+
+  const runSearch = useCallback(async (term = '') => {
     const query = (term || '').trim();
+    const genreParam = selectedGenre !== 'all' && selectedGenre !== 'other' ? selectedGenre : '';
+    const platformParam = selectedPlatform !== 'all' && selectedPlatform !== 'other' ? selectedPlatform : '';
 
     setLoading(true);
     setError('');
     setMessage('');
 
     try {
-      const response = await gameAPI.getGames({ search: query, page: 1 });
+      const response = await gameAPI.getGames({
+        search: query,
+        genre: genreParam,
+        platform: platformParam,
+        page: 1,
+      });
       setGames(Array.isArray(response.games) ? response.games : []);
+      if (response.warning) {
+        setMessage(response.warning);
+      }
     } catch (err) {
       setError(err.message || 'Failed to load global game radar');
     } finally {
       setLoading(false);
     }
-  }, [search]);
+  }, [selectedGenre, selectedPlatform]);
 
   useEffect(() => {
     if (user?.role !== 'admin') {
       runSearch('');
+      refreshTrackedGames();
     }
-  }, [user?.role, runSearch]);
+  }, [refreshTrackedGames, runSearch, user?.role]);
 
-  const genres = useMemo(() => {
-    const set = new Set(games.map((g) => g.genre).filter(Boolean));
-    return ['all', ...Array.from(set).sort((a, b) => a.localeCompare(b))];
-  }, [games]);
+  const genres = useMemo(() => ['all', ...COMMON_GENRES, 'other'], []);
 
-  const platforms = useMemo(() => {
-    const set = new Set();
-    games.forEach((g) => (g.platforms || []).forEach((p) => set.add(p)));
-    return ['all', ...Array.from(set).sort((a, b) => a.localeCompare(b))];
-  }, [games]);
+  const platforms = useMemo(() => ['all', ...COMMON_PLATFORMS, 'other'], []);
 
   const filteredGames = useMemo(() => games
-    .filter((game) => {
-      const genreMatch = selectedGenre === 'all' || game.genre === selectedGenre;
-      const platformMatch = selectedPlatform === 'all' || (game.platforms || []).includes(selectedPlatform);
-      const hasCoreMetadata = Boolean(game.title && game.owner && game.coverUrl && Number.isFinite(Number(game.rating)) && Number(game.rating) > 0);
-      return genreMatch && platformMatch && hasCoreMetadata;
-    })
+    .filter((game) => Boolean(game.title))
     .sort((a, b) => {
       const userDelta = Number(b.usersOverall || 0) - Number(a.usersOverall || 0);
       if (userDelta !== 0) return userDelta;
       return Number(b.popularityScore || 0) - Number(a.popularityScore || 0);
-    }), [games, selectedGenre, selectedPlatform]);
+    }), [games]);
 
   const addToList = async (game, status) => {
     try {
       setSavingId(`${game.rawgId}-${status}`);
       setError('');
 
-      await userAPI.addOrUpdateLibraryGame({
+      const trackedStatus = trackedById[String(game.rawgId)];
+      if (trackedStatus === status) {
+        setMessage(`${game.title} is already in your ${status}.`);
+        return;
+      }
+
+      const result = await userAPI.addOrUpdateLibraryGame({
         rawgId: game.rawgId,
         rawgSlug: game.rawgSlug,
         title: game.title,
         coverUrl: game.coverUrl,
         status,
       });
+
+      if (result?.alreadyExists) {
+        setMessage(result.message || `${game.title} is already in your ${status}.`);
+        return;
+      }
+
+      if (result?.message && /already in/i.test(result.message)) {
+        setMessage(result.message);
+        return;
+      }
+
+      if (result?.error) {
+        setError(result.error);
+        return;
+      }
+
+      setTrackedById((prev) => ({ ...prev, [String(game.rawgId)]: status }));
 
       setMessage(`${game.title} added to ${status}.`);
     } catch (err) {
@@ -104,7 +169,7 @@ const Games = () => {
         className={styles.searchBar}
         onSubmit={(e) => {
           e.preventDefault();
-          runSearch();
+          runSearch(search);
         }}
       >
         <input
@@ -120,13 +185,21 @@ const Games = () => {
         <label>
           Genre
           <select value={selectedGenre} onChange={(e) => setSelectedGenre(e.target.value)}>
-            {genres.map((genre) => <option key={genre} value={genre}>{genre === 'all' ? 'All Genres' : genre}</option>)}
+            {genres.map((genre) => (
+              <option key={genre} value={genre}>
+                {genre === 'all' ? 'All Genres' : genre === 'other' ? 'Other Genres' : genre}
+              </option>
+            ))}
           </select>
         </label>
         <label>
           Platform
           <select value={selectedPlatform} onChange={(e) => setSelectedPlatform(e.target.value)}>
-            {platforms.map((platform) => <option key={platform} value={platform}>{platform === 'all' ? 'All Platforms' : platform}</option>)}
+            {platforms.map((platform) => (
+              <option key={platform} value={platform}>
+                {platform === 'all' ? 'All Platforms' : platform === 'other' ? 'Other Platforms' : platform}
+              </option>
+            ))}
           </select>
         </label>
       </div>
@@ -157,8 +230,8 @@ const Games = () => {
 
                 <div className={styles.meta}>
                   <span>{game.source}</span>
-                  <span>Owner: {game.owner}</span>
-                  <span>Rating {Number(game.rating).toFixed(1)}</span>
+                  <span>Catalog: {game.source === 'RAWG' ? 'RAWG Community' : (game.owner || 'Global Catalog')}</span>
+                  <span>Rating {Number(game.rating || 0).toFixed(1)}</span>
                 </div>
 
                 <div className={styles.metaSecondary}>
@@ -176,16 +249,20 @@ const Games = () => {
                   <button
                     className={styles.addBtn}
                     onClick={() => addToList(game, 'library')}
-                    disabled={savingId !== null}
+                    disabled={savingId !== null || trackedById[String(game.rawgId)] === 'library'}
                   >
-                    {savingId === `${game.rawgId}-library` ? 'Adding...' : 'Add to Library'}
+                    {trackedById[String(game.rawgId)] === 'library'
+                      ? 'In Library'
+                      : (savingId === `${game.rawgId}-library` ? 'Adding...' : 'Add to Library')}
                   </button>
                   <button
                     className={styles.watchBtn}
                     onClick={() => addToList(game, 'watchlist')}
-                    disabled={savingId !== null}
+                    disabled={savingId !== null || trackedById[String(game.rawgId)] === 'watchlist'}
                   >
-                    {savingId === `${game.rawgId}-watchlist` ? 'Adding...' : 'Add to Watchlist'}
+                    {trackedById[String(game.rawgId)] === 'watchlist'
+                      ? 'In Watchlist'
+                      : (savingId === `${game.rawgId}-watchlist` ? 'Adding...' : 'Add to Watchlist')}
                   </button>
                 </div>
               </div>

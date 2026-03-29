@@ -102,6 +102,15 @@
   padding: 0.75rem 0.9rem;
 }
 
+.success {
+  margin-top: 1rem;
+  border: 1px solid #23704d;
+  background: #0f2a1f;
+  color: #c4ffe2;
+  border-radius: 10px;
+  padding: 0.75rem 0.9rem;
+}
+
 .grid {
   margin-top: 1rem;
   display: grid;
@@ -134,6 +143,39 @@
   gap: 0.75rem;
   font-size: 0.9rem;
   color: var(--muted);
+}
+
+.actionsRow {
+  margin-top: 0.7rem;
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.addBtn,
+.watchBtn {
+  border: 0;
+  border-radius: 8px;
+  padding: 0.45rem 0.7rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.addBtn {
+  background: linear-gradient(90deg, var(--primary), var(--accent));
+  color: #061525;
+}
+
+.watchBtn {
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--bg-elev) 82%, var(--bg));
+  color: var(--text);
+}
+
+.addBtn:disabled,
+.watchBtn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
 }
 
 .cardLoading {

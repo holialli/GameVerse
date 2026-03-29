@@ -4,6 +4,78 @@
   gap: 16px;
 }
 
+.createForm {
+  margin: 0.8rem 0 1rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--card);
+  padding: 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.createForm h2 {
+  margin: 0;
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(220px, 1fr));
+  gap: 0.55rem;
+}
+
+.createForm input,
+.createForm select,
+.createForm textarea {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--bg-elev) 80%, var(--bg));
+  color: var(--text);
+  padding: 0.55rem 0.6rem;
+  font-family: inherit;
+}
+
+.createForm button,
+.joinBtn {
+  border: 0;
+  border-radius: 9px;
+  padding: 0.55rem 0.75rem;
+  background: linear-gradient(90deg, var(--primary), var(--accent));
+  color: #08131f;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.joinBtn:disabled,
+.createForm button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.success,
+.error {
+  margin-top: 0.6rem;
+  border-radius: 10px;
+  padding: 0.55rem 0.7rem;
+}
+
+.success {
+  border: 1px solid #1f7058;
+  background: #102f25;
+  color: #c8ffe9;
+}
+
+.error {
+  border: 1px solid #8c3240;
+  background: #2d141b;
+  color: #ffd3da;
+}
+
+.state {
+  color: var(--muted);
+}
+
 .eventCard {
   flex: 1 1 calc(50% - 16px);
   display: flex;
@@ -24,4 +96,5 @@
 
 @media (max-width: 900px) {
   .eventCard { flex: 1 1 100%; }
+  .formGrid { grid-template-columns: 1fr; }
 }

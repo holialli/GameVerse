@@ -40,6 +40,13 @@ exports.getDashboardStats = async (req, res) => {
         const pendingFeedbackCount = await Contact.countDocuments({ status: 'pending' });
         const resolvedFeedbackCount = await Contact.countDocuments({ status: 'resolved' });
         const pendingVideosCount = await Video.countDocuments({ status: { $in: ['pending', 'review'] } });
+        const approvedVideosCount = await Video.countDocuments({
+            status: 'approved',
+            $or: [
+                { activeUntil: null },
+                { activeUntil: { $gt: new Date() } },
+            ],
+        });
         const awaitingEventResultCount = await Event.countDocuments({ status: 'awaiting-result' });
         const completedEventCount = await Event.countDocuments({ status: 'completed' });
         const recentAuditCount = await AuditLog.countDocuments({ createdAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } });
@@ -59,6 +66,7 @@ exports.getDashboardStats = async (req, res) => {
                 pendingFeedbackCount,
                 resolvedFeedbackCount,
                 pendingVideosCount,
+                approvedVideosCount,
                 awaitingEventResultCount,
                 completedEventCount,
                 recentAuditCount,
@@ -120,7 +128,41 @@ exports.moderateUser = async (req, res) => {
 };
 
 exports.getPendingVideos = async (req, res) => {
-    res.json({ videos: [] });
+    try {
+        const videos = await Video.find({ status: 'pending' })
+            .sort({ createdAt: -1 })
+            .limit(100)
+            .populate('uploadedBy', 'name username email')
+            .lean();
+
+        res.json({ videos });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to fetch pending videos' });
+    }
+};
+
+exports.getApprovedVideos = async (req, res) => {
+    try {
+        const now = new Date();
+        const videos = await Video.find({
+            status: 'approved',
+            $or: [
+                { activeUntil: null },
+                { activeUntil: { $gt: now } },
+            ],
+        })
+            .sort({ approvedAt: -1, createdAt: -1 })
+            .limit(100)
+            .populate('uploadedBy', 'name username email')
+            .lean();
+
+        res.json({
+            count: videos.length,
+            videos,
+        });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to fetch approved videos' });
+    }
 };
 
 exports.reviewVideo = async (req, res) => {
@@ -267,18 +309,31 @@ exports.updateUserRole = async (req, res) => {
 exports.approveVideo = async (req, res) => {
     try {
         const { id } = req.params;
+        const hoursRaw = Number(req.body?.durationHours || 0);
+        const durationHours = Number.isFinite(hoursRaw) && hoursRaw > 0
+            ? Math.min(24 * 30, hoursRaw)
+            : null;
 
-        const video = await Video.findById(id);
+        const update = {
+            status: 'approved',
+            approvedAt: new Date(),
+            approvedBy: req.user.id,
+            activeUntil: durationHours
+                ? new Date(Date.now() + durationHours * 60 * 60 * 1000)
+                : null,
+        };
+
+        const video = await Video.findByIdAndUpdate(id, { $set: update }, { new: true });
         if (!video) return res.status(404).json({ error: 'Video not found' });
 
-        video.status = 'approved';
-        await video.save();
-
-        await logAdminAction(req.user.id, 'VIDEO_APPROVED', id, 'Video');
+        const note = durationHours
+            ? `approved for ${durationHours}h`
+            : 'approved with no expiry';
+        await logAdminAction(req.user.id, 'VIDEO_APPROVED', id, 'Video', note);
 
         res.json({ message: 'Video approved', video });
     } catch (err) {
-        res.status(500).json({ error: 'Failed to approve video' });
+        res.status(500).json({ error: `Failed to approve video: ${err.message}` });
     }
 };
 
@@ -378,5 +433,154 @@ exports.setEventWinner = async (req, res) => {
         res.json({ message: 'Event winner updated', event });
     } catch (err) {
         res.status(500).json({ error: 'Failed to set event winner' });
+    }
+};
+
+exports.getPendingEventRequests = async (req, res) => {
+    try {
+        const events = await Event.find({ approvalStatus: 'pending' })
+            .sort({ createdAt: -1 })
+            .populate('requestedBy', 'name username email')
+            .lean();
+
+        res.json({ events });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to fetch pending tournament requests' });
+    }
+};
+
+exports.getEventsWithPendingJoinRequests = async (req, res) => {
+    try {
+        const events = await Event.find({ 'joinRequests.status': 'pending' })
+            .sort({ updatedAt: -1, createdAt: -1 })
+            .populate('requestedBy', 'name username email')
+            .lean();
+
+        const normalized = events.map((event) => {
+            const pendingJoinRequests = Array.isArray(event.joinRequests)
+                ? event.joinRequests.filter((r) => r.status === 'pending').length
+                : 0;
+
+            return {
+                _id: event._id,
+                title: event.title || 'Untitled Event',
+                category: event.category || 'Tournament',
+                description: event.description || '',
+                approvalStatus: event.approvalStatus || 'approved',
+                pendingJoinRequests,
+            };
+        }).filter((item) => item.pendingJoinRequests > 0);
+
+        res.json({ events: normalized });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to fetch events with pending join requests' });
+    }
+};
+
+exports.approveEventRequest = async (req, res) => {
+    try {
+        const { eventId } = req.params;
+        const event = await Event.findById(eventId);
+        if (!event) return res.status(404).json({ error: 'Event not found' });
+
+        event.approvalStatus = 'approved';
+        event.approvedBy = req.user.id;
+        event.approvedAt = new Date();
+        await event.save();
+
+        await logAdminAction(req.user.id, 'EVENT_REQUEST_APPROVED', eventId, 'Event');
+        res.json({ message: 'Tournament request approved', event });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to approve tournament request' });
+    }
+};
+
+exports.rejectEventRequest = async (req, res) => {
+    try {
+        const { eventId } = req.params;
+        const reason = sanitizeNote(req.body?.reason || 'Rejected by admin');
+        const event = await Event.findById(eventId);
+        if (!event) return res.status(404).json({ error: 'Event not found' });
+
+        event.approvalStatus = 'rejected';
+        await event.save();
+
+        await logAdminAction(req.user.id, 'EVENT_REQUEST_REJECTED', eventId, 'Event', reason);
+        res.json({ message: 'Tournament request rejected' });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to reject tournament request' });
+    }
+};
+
+exports.getPendingJoinRequests = async (req, res) => {
+    try {
+        const { eventId } = req.params;
+        const status = String(req.query.status || 'pending');
+
+        const event = await Event.findById(eventId)
+            .populate('joinRequests.userId', 'name username email avatar')
+            .lean();
+        if (!event) return res.status(404).json({ error: 'Event not found' });
+
+        const requests = Array.isArray(event.joinRequests)
+            ? event.joinRequests.filter((r) => r.status === status)
+            : [];
+
+        res.json({ eventId, requests });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to fetch join requests' });
+    }
+};
+
+exports.approveJoinRequest = async (req, res) => {
+    try {
+        const { eventId, userId } = req.params;
+        const event = await Event.findById(eventId);
+        if (!event) return res.status(404).json({ error: 'Event not found' });
+
+        const request = Array.isArray(event.joinRequests)
+            ? event.joinRequests.find((r) => String(r.userId) === String(userId))
+            : null;
+        if (!request) return res.status(404).json({ error: 'Join request not found' });
+
+        request.status = 'approved';
+        request.reviewedAt = new Date();
+        request.reviewedBy = req.user.id;
+
+        const alreadyParticipant = Array.isArray(event.participants)
+            && event.participants.some((p) => String(p) === String(userId));
+        if (!alreadyParticipant) {
+            event.participants.push(userId);
+        }
+
+        await event.save();
+        await logAdminAction(req.user.id, 'EVENT_JOIN_REQUEST_APPROVED', eventId, 'Event', userId);
+        res.json({ message: 'Join request approved' });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to approve join request' });
+    }
+};
+
+exports.rejectJoinRequest = async (req, res) => {
+    try {
+        const { eventId, userId } = req.params;
+        const reason = sanitizeNote(req.body?.reason || 'Rejected by admin');
+        const event = await Event.findById(eventId);
+        if (!event) return res.status(404).json({ error: 'Event not found' });
+
+        const request = Array.isArray(event.joinRequests)
+            ? event.joinRequests.find((r) => String(r.userId) === String(userId))
+            : null;
+        if (!request) return res.status(404).json({ error: 'Join request not found' });
+
+        request.status = 'rejected';
+        request.reviewedAt = new Date();
+        request.reviewedBy = req.user.id;
+        await event.save();
+
+        await logAdminAction(req.user.id, 'EVENT_JOIN_REQUEST_REJECTED', eventId, 'Event', reason);
+        res.json({ message: 'Join request rejected' });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to reject join request' });
     }
 };

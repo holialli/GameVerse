@@ -6,10 +6,54 @@ const API_BASE_URL = process.env.REACT_APP_API_URL
   ? `${process.env.REACT_APP_API_URL}/api`
   : 'http://localhost:5000/api';
 
+const parseYouTubeVideoId = (rawValue) => {
+  const value = String(rawValue || '').trim();
+  if (!value) return '';
+
+  try {
+    const parsed = new URL(value);
+    const host = parsed.hostname.toLowerCase();
+
+    if (host.includes('youtu.be')) {
+      return parsed.pathname.split('/').filter(Boolean).pop() || '';
+    }
+
+    const direct = parsed.searchParams.get('v');
+    if (direct) return direct;
+
+    const parts = parsed.pathname.split('/').filter(Boolean);
+    const shortsIndex = parts.indexOf('shorts');
+    if (shortsIndex >= 0 && parts[shortsIndex + 1]) return parts[shortsIndex + 1];
+
+    const embedIndex = parts.indexOf('embed');
+    if (embedIndex >= 0 && parts[embedIndex + 1]) return parts[embedIndex + 1];
+
+    return '';
+  } catch (err) {
+    return /^[A-Za-z0-9_-]{6,}$/.test(value) ? value : '';
+  }
+};
+
 const buildEmbedUrl = (video) => {
-  if (video.platform === 'youtube') return `https://www.youtube.com/embed/${video.videoId}`;
-  if (video.platform === 'twitch') return `https://player.twitch.tv/?video=${video.videoId}&parent=localhost`;
+  if (video.platform === 'youtube') {
+    const videoId = parseYouTubeVideoId(video.videoId) || parseYouTubeVideoId(video.url);
+    if (!videoId) return null;
+    return `https://www.youtube.com/embed/${videoId}`;
+  }
+  if (video.platform === 'twitch') {
+    const parent = window.location.hostname || 'localhost';
+    return `https://player.twitch.tv/?video=${video.videoId}&parent=${encodeURIComponent(parent)}`;
+  }
   return null;
+};
+
+const buildThumbnailUrl = (video) => {
+  if (video?.thumbnailUrl) return video.thumbnailUrl;
+  if (video?.platform === 'youtube') {
+    const videoId = parseYouTubeVideoId(video.videoId) || parseYouTubeVideoId(video.url);
+    if (videoId) return `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
+  }
+  return '';
 };
 
 const VideoHub = () => {
@@ -21,12 +65,14 @@ const VideoHub = () => {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+  const [playingMap, setPlayingMap] = useState({});
+  const [embedErrorMap, setEmbedErrorMap] = useState({});
 
   const loadVideos = async (nextCursor = null) => {
     setLoading(true);
     setError('');
     try {
-      const params = new URLSearchParams({ limit: '12' });
+      const params = new URLSearchParams({ limit: '6' });
       if (nextCursor) params.set('cursor', nextCursor);
       const res = await fetch(`${API_BASE_URL}/videos?${params.toString()}`);
       const json = await res.json();
@@ -108,22 +154,51 @@ const VideoHub = () => {
         <div className={styles.grid}>
           {videos.map((video) => {
             const embed = buildEmbedUrl(video);
+            const thumbnail = buildThumbnailUrl(video);
+            const isPlaying = !!playingMap[video._id];
+            const embedFailed = !!embedErrorMap[video._id];
+            const canPlay = !!embed && !embedFailed;
+
             return (
               <article key={video._id} className={styles.card}>
                 <div className={styles.media}>
-                  {embed ? (
+                  {isPlaying && canPlay ? (
                     <iframe
                       src={embed}
                       title={video.title}
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                       allowFullScreen
+                      onError={() => {
+                        setEmbedErrorMap((prev) => ({ ...prev, [video._id]: true }));
+                        setPlayingMap((prev) => ({ ...prev, [video._id]: false }));
+                      }}
                     />
                   ) : (
-                    <img src={video.thumbnailUrl} alt={video.title} />
+                    <button
+                      type="button"
+                      className={styles.posterBtn}
+                      onClick={() => {
+                        if (canPlay) {
+                          setPlayingMap((prev) => ({ ...prev, [video._id]: true }));
+                          return;
+                        }
+
+                        if (video.url) {
+                          window.open(video.url, '_blank', 'noopener,noreferrer');
+                        }
+                      }}
+                    >
+                      {thumbnail ? (
+                        <img src={thumbnail} alt={video.title} />
+                      ) : (
+                        <div className={styles.mediaFallback}>Video preview unavailable</div>
+                      )}
+                    </button>
                   )}
                 </div>
                 <h3>{video.title}</h3>
                 <p>{video.channelName || video.platform}</p>
+                {video.activeUntil && <p>Live until: {new Date(video.activeUntil).toLocaleString()}</p>}
               </article>
             );
           })}

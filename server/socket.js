@@ -1,9 +1,18 @@
 const { Server } = require('socket.io');
-const { createAdapter } = require('@socket.io/redis-adapter');
+let createAdapter = null;
+try {
+  ({ createAdapter } = require('@socket.io/redis-adapter'));
+} catch (err) {
+  createAdapter = null;
+}
 const redisClient = require('./utils/redisClient');
 const jwt = require('jsonwebtoken');
 const { moderateMessageAsync, syncFilter } = require('./services/moderationService');
 const LobbyMessage = require('./models/LobbyMessage');
+
+const resolveJwtSecret = () => {
+  return process.env.JWT_ACCESS_SECRET || process.env.JWT_SECRET || process.env.JWT_REFRESH_SECRET || null;
+};
 
 let pubClient = null;
 let subClient = null;
@@ -20,21 +29,27 @@ let io;
 exports.initSocket = (server) => {
   io = new Server(server, {
     cors: {
-      origin: 'https://game-verse.tech',
-      credentials: true
+      origin: [
+        'https://game-verse.tech',
+        'http://localhost:3000',
+        process.env.CLIENT_URL,
+      ].filter(Boolean),
+      credentials: true,
     }
   });
 
-  if (pubClient && subClient) {
+  if (pubClient && subClient && createAdapter) {
     io.adapter(createAdapter(pubClient, subClient));
   }
 
   // Middleware for JWT validation
   io.use((socket, next) => {
     const token = socket.handshake.auth?.token;
+    const jwtSecret = resolveJwtSecret();
     if (!token) return next(new Error('Authentication error: No token provided'));
+    if (!jwtSecret) return next(new Error('Authentication error: Server misconfiguration'));
 
-    jwt.verify(token, process.env.JWT_ACCESS_SECRET || 'secret1', (err, decoded) => {
+    jwt.verify(token, jwtSecret, (err, decoded) => {
       if (err) return next(new Error('Authentication error: Invalid token'));
       socket.user = decoded; // Contains {id, role}
       next();
@@ -52,9 +67,14 @@ exports.initSocket = (server) => {
     } catch(err) { console.error('History load error', err); }
 
     socket.on('sendMessage', async ({ content, username }) => {
+      const cleanContent = String(content || '').trim().slice(0, 500);
+      if (!cleanContent) {
+        return socket.emit('messageBlocked', { reason: 'Message cannot be empty.' });
+      }
+
       // 1. Sync regex block
-      if (!syncFilter(content)) {
-          return socket.emit('messageBlocked', { reason: 'Message contains banned terms.' });
+      if (!syncFilter(cleanContent)) {
+          return socket.emit('messageBlocked', { reason: 'Message contains blocked terms.' });
       }
 
       // Live verification of shadowBan state via Redis cache (to avoid DB hit per message)
@@ -67,10 +87,12 @@ exports.initSocket = (server) => {
         }
       }
 
+      const safeUsername = String(username || '').replace(/[^a-zA-Z0-9_\-\s]/g, '').trim().slice(0, 32) || 'User';
+
       const msgObj = {
-          content,
+          content: cleanContent,
           userId: socket.user.id,
-          username: username || 'User',
+          username: safeUsername,
           role: socket.user.role,
           timestamp: new Date()
       };
@@ -86,7 +108,7 @@ exports.initSocket = (server) => {
          io.to('globalLobby').emit('newMessage', savedMessage);
          
          // 2. Async AI Moderation checking - strictly non-blocking
-         moderateMessageAsync(socket.user.id, username, content);
+         moderateMessageAsync(socket.user.id, safeUsername, cleanContent);
       }
     });
 

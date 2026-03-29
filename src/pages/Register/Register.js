@@ -14,13 +14,47 @@ const Register = () => {
   const navigate = useNavigate();
   const { register } = useAuth();
 
+  // Password validation requirements
+  const passwordRequirements = {
+    minLength: password.length >= 8,
+    hasDigit: /\d/.test(password),
+    hasSymbol: /[^A-Za-z0-9]/.test(password),
+  };
+
+  const isPasswordValid = Object.values(passwordRequirements).every(req => req);
+  const isPasswordsMatch = password === confirmPassword && password.length > 0;
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    setIsLoading(true);
 
+    const trimmedName = String(name || '').trim();
+    const trimmedEmail = String(email || '').trim();
+
+    if (trimmedName.length < 2) {
+      setError('Name must be at least 2 characters.');
+      return;
+    }
+
+    const emailRegex = /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,})+$/;
+    if (!emailRegex.test(trimmedEmail)) {
+      setError('Please enter a valid email address.');
+      return;
+    }
+
+    if (!isPasswordValid) {
+      setError('Password must include 8+ characters, at least 1 number, and at least 1 symbol.');
+      return;
+    }
+
+    if (!isPasswordsMatch) {
+      setError('Passwords do not match.');
+      return;
+    }
+
+    setIsLoading(true);
     try {
-      await register(name, email, password, confirmPassword);
+      await register(trimmedName, trimmedEmail, password, confirmPassword);
       navigate('/dashboard');
     } catch (err) {
       setError(err.message || 'Registration failed');
@@ -71,6 +105,23 @@ const Register = () => {
               required
               placeholder="Enter your password"
             />
+            {password && (
+                          <div className={styles.passwordRequirements}>
+                            <p className={styles.requirementsTitle}>Password Requirements:</p>
+                            <div className={`${styles.requirement} ${passwordRequirements.minLength ? styles.met : ''}`}>
+                              <span className={styles.icon}>{passwordRequirements.minLength ? '✓' : '✗'}</span>
+                              At least 8 characters
+                            </div>
+                            <div className={`${styles.requirement} ${passwordRequirements.hasDigit ? styles.met : ''}`}>
+                              <span className={styles.icon}>{passwordRequirements.hasDigit ? '✓' : '✗'}</span>
+                              At least 1 number (0-9)
+                            </div>
+                            <div className={`${styles.requirement} ${passwordRequirements.hasSymbol ? styles.met : ''}`}>
+                              <span className={styles.icon}>{passwordRequirements.hasSymbol ? '✓' : '✗'}</span>
+                              At least 1 symbol (!@#$%^&*)
+                            </div>
+                          </div>
+            )}
           </div>
 
           <div className={styles.formGroup}>
@@ -83,6 +134,11 @@ const Register = () => {
               required
               placeholder="Confirm your password"
             />
+            {confirmPassword && (
+                          <p className={`${styles.passwordMatch} ${isPasswordsMatch ? styles.match : styles.mismatch}`}>
+                            {isPasswordsMatch ? '✓ Passwords match' : '✗ Passwords do not match'}
+                          </p>
+            )}
           </div>
 
           <button type="submit" disabled={isLoading} className={styles.submitBtn}>

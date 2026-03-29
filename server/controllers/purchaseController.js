@@ -50,7 +50,11 @@ exports.buyGame = async (req, res) => {
       purchase,
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error('[PURCHASE] Buy game error:', error.message);
+    const message = process.env.NODE_ENV === 'production'
+      ? 'Failed to purchase game. Please try again later.'
+      : error.message;
+    res.status(500).json({ message });
   }
 };
 
@@ -105,7 +109,11 @@ exports.rentGame = async (req, res) => {
       purchase,
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error('[PURCHASE] Rent game error:', error.message);
+    const message = process.env.NODE_ENV === 'production'
+      ? 'Failed to rent game. Please try again later.'
+      : error.message;
+    res.status(500).json({ message });
   }
 };
 
@@ -140,7 +148,11 @@ exports.getUserGames = async (req, res) => {
       total: purchases.length,
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error('[PURCHASE] Get user games error:', error.message);
+    const message = process.env.NODE_ENV === 'production'
+      ? 'Failed to retrieve your games. Please try again later.'
+      : error.message;
+    res.status(500).json({ message });
   }
 };
 

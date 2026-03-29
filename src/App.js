@@ -1,4 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { HelmetProvider } from 'react-helmet-async';
 import Layout from './components/Layout/Layout';
 import Home from './pages/Home/Home';
 import DiscoveryOracle from './pages/DiscoveryOracle/DiscoveryOracle';
@@ -26,11 +27,12 @@ const RootExperience = () => {
 
 function App() {
   return (
-    <AuthProvider>
-      <Layout>
-        <Routes>
-          <Route path="/" element={<RootExperience />} />
-          <Route path="/news" element={<News />} />
+    <HelmetProvider>
+      <AuthProvider>
+        <Layout>
+          <Routes>
+            <Route path="/" element={<RootExperience />} />
+            <Route path="/news" element={<News />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -123,6 +125,7 @@ function App() {
         </Routes>
       </Layout>
     </AuthProvider>
+    </HelmetProvider>
   );
 }
 

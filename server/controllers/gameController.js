@@ -1,197 +1,195 @@
 const Game = require('../models/Game');
 
-const curatedTrendingGames = [
-  {
-    rawgId: 1000001,
-    rawgSlug: 'fortnite',
-    title: 'Fortnite',
-    description: 'Free-to-play battle royale with zero-build, creative maps, and seasonal events.',
-    coverUrl: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co2lbd.jpg',
-    genre: 'Battle Royale',
-    rating: 8.6,
-    platforms: ['PC', 'PlayStation', 'Xbox', 'Nintendo Switch', 'Mobile'],
-    released: '2017-07-21',
-    source: 'Curated',
-  },
-  {
-    rawgId: 1000002,
-    rawgSlug: 'call-of-duty-warzone',
-    title: 'Call of Duty: Warzone',
-    description: 'Large-scale competitive shooter with squad tactics and live seasonal updates.',
-    coverUrl: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co1x7d.jpg',
-    genre: 'Shooter',
-    rating: 8.1,
-    platforms: ['PC', 'PlayStation', 'Xbox'],
-    released: '2020-03-10',
-    source: 'Curated',
-  },
-  {
-    rawgId: 1000003,
-    rawgSlug: 'valorant',
-    title: 'VALORANT',
-    description: 'Tactical hero shooter focused on precision gunplay and utility mastery.',
-    coverUrl: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co2k7f.jpg',
-    genre: 'Tactical Shooter',
-    rating: 8.7,
-    platforms: ['PC'],
-    released: '2020-06-02',
-    source: 'Curated',
-  },
-  {
-    rawgId: 1000004,
-    rawgSlug: 'elden-ring',
-    title: 'Elden Ring',
-    description: 'Open-world action RPG with intense boss encounters and deep build variety.',
-    coverUrl: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co4jni.jpg',
-    genre: 'Action RPG',
-    rating: 9.6,
-    platforms: ['PC', 'PlayStation', 'Xbox'],
-    released: '2022-02-25',
-    source: 'Curated',
-  },
-  {
-    rawgId: 1000005,
-    rawgSlug: 'minecraft',
-    title: 'Minecraft',
-    description: 'Sandbox building and survival with endless creative and multiplayer options.',
-    coverUrl: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co49x5.jpg',
-    genre: 'Sandbox',
-    rating: 9.0,
-    platforms: ['PC', 'PlayStation', 'Xbox', 'Nintendo Switch', 'Mobile'],
-    released: '2011-11-18',
-    source: 'Curated',
-  },
-  {
-    rawgId: 1000006,
-    rawgSlug: 'grand-theft-auto-v',
-    title: 'Grand Theft Auto V',
-    description: 'Open-world action epic with a massive online ecosystem.',
-    coverUrl: 'https://images.igdb.com/igdb/image/upload/t_cover_big/co1ntf.jpg',
-    genre: 'Action Adventure',
-    rating: 9.5,
-    platforms: ['PC', 'PlayStation', 'Xbox'],
-    released: '2013-09-17',
-    source: 'Curated',
-  },
-];
-
-const addCuratedFallbacks = (results, query) => {
-  const q = String(query || '').toLowerCase();
-  const current = [...results];
-  const existingTitles = new Set(current.map((g) => String(g.title || '').toLowerCase()));
-
-  const matchedCurated = curatedTrendingGames.filter((g) => {
-    if (!q) return true;
-    return g.title.toLowerCase().includes(q) || g.genre.toLowerCase().includes(q);
-  });
-
-  matchedCurated.forEach((g) => {
-    if (!existingTitles.has(g.title.toLowerCase())) current.push(g);
-  });
-
-  if (q.includes('fortnite') && !current.some((g) => String(g.title || '').toLowerCase() === 'fortnite')) {
-    current.unshift(curatedTrendingGames[0]);
-  }
-
-  return current.slice(0, 24);
+const RAWG_GENRE_SLUG_MAP = {
+  action: 'action',
+  adventure: 'adventure',
+  rpg: 'role-playing-games-rpg',
+  shooter: 'shooter',
+  sports: 'sports',
+  strategy: 'strategy',
+  simulation: 'simulation',
+  racing: 'racing',
+  puzzle: 'puzzle',
+  indie: 'indie',
+  casual: 'casual',
+  fighting: 'fighting',
+  platformer: 'platformer',
+  horror: 'horror',
+  'battle royale': 'shooter',
+  sandbox: 'simulation',
 };
 
-const normalizeRawgItem = (item) => ({
-  rawgId: item.id,
-  rawgSlug: item.slug,
-  title: item.name,
-  description: item?.genres?.map((g) => g.name).join(', ') || 'No summary available yet.',
-  coverUrl: item.background_image || null,
-  genre: item?.genres?.[0]?.name || 'Unknown',
-  rating: item.rating || null,
-  popularityScore: Number(item.rating_top || 0) * Number(item.rating || 0),
-  usersOverall: Number(item.ratings_count || 0),
-  owner: 'Global Catalog',
-  platforms: Array.isArray(item.platforms)
-    ? item.platforms.map((p) => p.platform?.name).filter(Boolean)
-    : [],
-  released: item.released || null,
-  source: 'RAWG',
-});
+const RAWG_PLATFORM_ID_MAP = {
+  pc: '4',
+  playstation: '187,18,16,15,27,19,17',
+  xbox: '186,1,14,80',
+  'nintendo switch': '7',
+  nintendo: '7,8,9,13,10,11,105,83,24,43,26',
+  mobile: '3,21',
+  'steam deck': '4',
+  linux: '6',
+  macos: '5',
+};
 
-const normalizeCheapSharkItem = (item) => ({
-  rawgId: Number(item.gameID) || Number(item.steamAppID) || Math.floor(Math.random() * 100000000),
-  rawgSlug: String(item.external || item.gameID || '').toLowerCase().replace(/\s+/g, '-'),
-  title: item.external || 'Unknown title',
-  description: 'Fetched from live internet catalog.',
-  coverUrl: item.thumb || null,
-  genre: 'Unknown',
-  rating: Number(item.metacriticScore || 0) / 10 || null,
-  popularityScore: Number(item.dealRating || 0) || 0,
-  usersOverall: 0,
-  owner: 'Global Catalog',
-  platforms: ['PC'],
-  released: null,
-  source: 'CheapShark',
-});
+const normalizeFilterValue = (value) => String(value || '').trim().toLowerCase();
+
+const toRawgGenreSlug = (genre) => {
+  const normalized = normalizeFilterValue(genre);
+  if (!normalized) return '';
+  if (RAWG_GENRE_SLUG_MAP[normalized]) return RAWG_GENRE_SLUG_MAP[normalized];
+  return normalized.replace(/\s+/g, '-');
+};
+
+const toRawgPlatformIds = (platform) => {
+  const normalized = normalizeFilterValue(platform);
+  if (!normalized) return '';
+  if (RAWG_PLATFORM_ID_MAP[normalized]) return RAWG_PLATFORM_ID_MAP[normalized];
+  return normalized;
+};
+
+const normalizeRawgItem = (item, isFullDetail = false) => {
+  // Extract publisher/developer from RAWG data
+  // Full detail responses have publishers/developers arrays
+  const publishers = Array.isArray(item.publishers) ? item.publishers.map(p => p.name).join(', ') : null;
+  const developers = Array.isArray(item.developers) ? item.developers.map(d => d.name).join(', ') : null;
+  const owner = publishers || developers || 'Global Catalog';
+  
+  return {
+    rawgId: item.id,
+    rawgSlug: item.slug,
+    title: item.name,
+    description: item?.genres?.map((g) => g.name).join(', ') || 'No summary available yet.',
+    coverUrl: item.background_image || null,
+    genre: item?.genres?.[0]?.name || 'Unknown',
+    rating: item.rating || null,
+    popularityScore: Number(item.rating_top || 0) * Number(item.rating || 0),
+    usersOverall: Number(item.ratings_count || 0),
+    owner,
+    platforms: Array.isArray(item.platforms)
+      ? item.platforms.map((p) => p.platform?.name).filter(Boolean)
+      : [],
+    released: item.released || null,
+    source: 'RAWG',
+  };
+};
 
 exports.searchInternetGames = async (req, res) => {
   try {
     const q = (req.query.q || req.query.search || '').trim();
+    const genreQuery = String(req.query.genre || '').trim().toLowerCase();
+    const platformQuery = String(req.query.platform || '').trim().toLowerCase();
     const page = Number(req.query.page || 1);
-
-    if (!q) {
-      const fallback = addCuratedFallbacks([], '');
-      return res.json({
-        games: fallback,
-        page: 1,
-        totalPages: 1,
-        source: 'Curated',
-      });
-    }
 
     const rawgKey = process.env.RAWG_API_KEY;
     let results = [];
+    let rawgTotalCount = 0;
+    let warning = '';
 
     const rawgParams = new URLSearchParams({
-      search: q,
       page: String(Math.max(1, page)),
-      page_size: '20',
+      page_size: '10',
+      ordering: q ? '-rating' : '-added',
     });
+
+    if (q) {
+      rawgParams.set('search', q);
+    }
+
+    const rawgGenre = toRawgGenreSlug(genreQuery);
+    const rawgPlatforms = toRawgPlatformIds(platformQuery);
+
+    if (rawgGenre) {
+      if (rawgGenre === 'horror') {
+        // RAWG's top-level genre list can be inconsistent for horror. Tags are more reliable.
+        rawgParams.set('tags', 'horror');
+      } else {
+        rawgParams.set('genres', rawgGenre);
+      }
+    }
+    if (rawgPlatforms) {
+      rawgParams.set('platforms', rawgPlatforms);
+    }
 
     if (rawgKey) {
       rawgParams.set('key', rawgKey);
+    } else {
+      warning = 'Live game catalog is temporarily unavailable.';
     }
 
     try {
+      console.log(`[GAMES] Searching RAWG for query: "${q}"`);
       const rawgResponse = await fetch(`https://api.rawg.io/api/games?${rawgParams.toString()}`);
       if (rawgResponse.ok) {
         const rawgData = await rawgResponse.json();
-        results = Array.isArray(rawgData.results) ? rawgData.results.map(normalizeRawgItem) : [];
+        rawgTotalCount = Number(rawgData?.count || 0);
+        console.log(`[GAMES] RAWG returned ${rawgData.results?.length || 0} results for "${q}"`);
+        
+        // Fetch full details for top 3 results to get publisher/developer info
+        if (Array.isArray(rawgData.results) && rawgData.results.length > 0) {
+          const topResults = rawgData.results.slice(0, 3);
+          const enrichedResults = [];
+          
+          for (const searchResult of topResults) {
+            try {
+              const detailUrl = `https://api.rawg.io/api/games/${searchResult.id}?key=${rawgKey}`;
+              const detailResponse = await fetch(detailUrl);
+              if (detailResponse.ok) {
+                const fullGame = await detailResponse.json();
+                console.log(`[GAMES] Fetched full details for ${searchResult.name} - Publishers: ${fullGame.publishers?.map(p => p.name).join(', ') || 'none'}`);
+                enrichedResults.push(normalizeRawgItem(fullGame, true));
+              } else {
+                enrichedResults.push(normalizeRawgItem(searchResult));
+              }
+            } catch (err) {
+              console.warn(`[GAMES] Failed to fetch details for ${searchResult.id}:`, err.message);
+              enrichedResults.push(normalizeRawgItem(searchResult));
+            }
+          }
+          
+          // Append remaining search results without enrichment
+          results = [
+            ...enrichedResults,
+            ...rawgData.results.slice(3).map(r => normalizeRawgItem(r))
+          ];
+        } else {
+          results = Array.isArray(rawgData.results) ? rawgData.results.map(r => normalizeRawgItem(r)) : [];
+        }
+      } else {
+        console.error(`[GAMES] RAWG API error: ${rawgResponse.status} ${rawgResponse.statusText}`);
+        if (!warning) {
+          warning = 'Live game catalog is temporarily unavailable.';
+        }
       }
     } catch (rawgErr) {
-      // Fall through to secondary provider.
-    }
-
-    if (!results.length) {
-      try {
-        const cheapRes = await fetch(`https://www.cheapshark.com/api/1.0/games?title=${encodeURIComponent(q)}&limit=20`);
-        if (cheapRes.ok) {
-          const cheapData = await cheapRes.json();
-          results = Array.isArray(cheapData) ? cheapData.map(normalizeCheapSharkItem) : [];
-        }
-      } catch (fallbackErr) {
-        // Ignore and return empty set below.
+      console.error('[GAMES] Error fetching from RAWG:', rawgErr.message);
+      if (!warning) {
+        warning = 'Live game catalog is temporarily unavailable.';
       }
     }
 
-    const finalResults = addCuratedFallbacks(results, q).map((game) => ({
+    const normalizedQuery = q.toLowerCase();
+    const finalResults = results.map((game) => ({
       ...game,
       popularityScore: Number(game.popularityScore || game.rating || 0),
       usersOverall: Number(game.usersOverall || 0),
       owner: game.owner || 'Global Catalog',
-    }));
+    }))
+      .sort((a, b) => {
+        const aTitle = String(a.title || '').toLowerCase();
+        const bTitle = String(b.title || '').toLowerCase();
+        const aExact = normalizedQuery && (aTitle === normalizedQuery || aTitle.startsWith(normalizedQuery));
+        const bExact = normalizedQuery && (bTitle === normalizedQuery || bTitle.startsWith(normalizedQuery));
+        if (aExact !== bExact) return bExact ? 1 : -1;
+        return Number(b.popularityScore || 0) - Number(a.popularityScore || 0);
+      })
+      .slice(0, 10);
 
     res.json({
       games: finalResults,
       page: Math.max(1, page),
-      totalPages: finalResults.length ? Math.max(1, Math.ceil(finalResults.length / 20)) : 1,
+      totalPages: rawgTotalCount ? Math.max(1, Math.ceil(rawgTotalCount / 10)) : 1,
       source: finalResults[0]?.source || 'none',
+      warning,
     });
   } catch (error) {
     res.status(500).json({ message: 'Failed to search internet games' });

@@ -23,6 +23,7 @@ router.get('/audit-logs', adminController.getAuditLogs);
 
 // Video Queue
 router.get('/videos/pending', adminController.getPendingVideos);
+router.get('/videos/approved', adminController.getApprovedVideos);
 router.patch('/videos/:id/approve', adminController.approveVideo);
 router.delete('/videos/:id', adminController.deleteVideo);
 
@@ -32,5 +33,12 @@ router.patch('/config/:key', adminController.updateSiteConfig);
 
 // Tournament Verifier
 router.patch('/events/:eventId/winner', adminController.setEventWinner);
+router.get('/events/requests', adminController.getPendingEventRequests);
+router.get('/events/join-requests/pending-events', adminController.getEventsWithPendingJoinRequests);
+router.patch('/events/:eventId/approve-request', adminController.approveEventRequest);
+router.patch('/events/:eventId/reject-request', adminController.rejectEventRequest);
+router.get('/events/:eventId/join-requests', adminController.getPendingJoinRequests);
+router.patch('/events/:eventId/join-requests/:userId/approve', adminController.approveJoinRequest);
+router.patch('/events/:eventId/join-requests/:userId/reject', adminController.rejectJoinRequest);
 
 module.exports = router;

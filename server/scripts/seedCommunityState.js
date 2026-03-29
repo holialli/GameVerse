@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 
 const mongoose = require('mongoose');
-require('dotenv').config();
 
 const User = require('../models/User');
 const UserGame = require('../models/UserGame');

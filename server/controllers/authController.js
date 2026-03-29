@@ -4,8 +4,22 @@ const User = require('../models/User');
 const { sendWelcomeEmail, sendPasswordResetEmail } = require('../services/emailService');
 const redis = require('../utils/redisClient');
 
+const isBasicStrongPassword = (value) => {
+  const pwd = String(value || '');
+  return pwd.length >= 8 && /\d/.test(pwd) && /[^A-Za-z0-9]/.test(pwd);
+};
+
+const resolveJwtSecret = () => {
+  return process.env.JWT_ACCESS_SECRET || process.env.JWT_SECRET || process.env.JWT_REFRESH_SECRET || null;
+};
+
 const generateTokens = (userId, role = 'user') => {
-  const accessToken = jwt.sign({ id: userId, role }, process.env.JWT_ACCESS_SECRET || 'secret1', {
+  const jwtSecret = resolveJwtSecret();
+  if (!jwtSecret) {
+    throw new Error('JWT secret is required');
+  }
+
+  const accessToken = jwt.sign({ id: userId, role }, jwtSecret, {
     expiresIn: process.env.JWT_ACCESS_EXPIRE || '15m',
   });
 
@@ -29,6 +43,19 @@ const setTokenCookies = (res, accessToken, refreshToken) => {
   });
 };
 
+const storeRefreshTokenIfAvailable = async (userId, refreshToken) => {
+  if (!redis) {
+    return;
+  }
+
+  try {
+    await redis.set(`refresh_token:${userId}:${refreshToken}`, 'valid', 'EX', 7 * 24 * 60 * 60);
+  } catch (err) {
+    // Redis is optional for login/register. Do not block auth if cache is unavailable.
+    console.error('[AUTH] Redis token store failed:', err.message);
+  }
+};
+
 // Register user
 exports.register = async (req, res) => {
   try {
@@ -36,6 +63,10 @@ exports.register = async (req, res) => {
 
     if (password !== confirmPassword) {
       return res.status(400).json({ message: 'Passwords do not match' });
+    }
+
+    if (!isBasicStrongPassword(password)) {
+      return res.status(400).json({ message: 'Password must be at least 8 characters and include a number and symbol' });
     }
 
     // Check if user exists by email
@@ -52,10 +83,7 @@ exports.register = async (req, res) => {
 
     const { accessToken, refreshToken } = generateTokens(user._id, user.role);
     
-    // Store refresh token when Redis is configured.
-    if (redis) {
-      await redis.set(`refresh_token:${user._id}:${refreshToken}`, 'valid', 'EX', 7 * 24 * 60 * 60);
-    }
+    await storeRefreshTokenIfAvailable(user._id, refreshToken);
 
     setTokenCookies(res, accessToken, refreshToken);
 
@@ -71,7 +99,11 @@ exports.register = async (req, res) => {
       },
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error('[AUTH] Registration error:', error.message);
+    const message = process.env.NODE_ENV === 'production'
+      ? 'Registration failed. Please try again later.'
+      : error.message;
+    res.status(500).json({ message });
   }
 };
 
@@ -94,10 +126,7 @@ exports.login = async (req, res) => {
 
     const { accessToken, refreshToken } = generateTokens(user._id, user.role);
 
-    // Store refresh token when Redis is configured.
-    if (redis) {
-      await redis.set(`refresh_token:${user._id}:${refreshToken}`, 'valid', 'EX', 7 * 24 * 60 * 60);
-    }
+    await storeRefreshTokenIfAvailable(user._id, refreshToken);
 
     setTokenCookies(res, accessToken, refreshToken);
 
@@ -113,7 +142,11 @@ exports.login = async (req, res) => {
       },
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error('[AUTH] Login error:', error.message);
+    const message = process.env.NODE_ENV === 'production'
+      ? 'Login failed. Please try again later.'
+      : error.message;
+    res.status(500).json({ message });
   }
 };
 
@@ -131,25 +164,45 @@ exports.refreshToken = async (req, res) => {
       return res.status(503).json({ message: 'Token refresh unavailable. Please login again.' });
     }
 
-    // Check Redis for old token
-    const tokenStatus = await redis.get(`refresh_token:${userId}:${oldRefreshToken}`);
+    let tokenStatus;
+    try {
+      // Check Redis for old token
+      tokenStatus = await redis.get(`refresh_token:${userId}:${oldRefreshToken}`);
+    } catch (err) {
+      console.error('[AUTH] Redis token read failed:', err.message);
+      return res.status(503).json({ message: 'Token refresh temporarily unavailable. Please login again.' });
+    }
     if (!tokenStatus) {
       // Possible replay attack, invalidate ALL tokens for user
-      const keys = await redis.keys(`refresh_token:${userId}:*`);
-      if (keys.length > 0) {
-        await redis.del(...keys);
+      try {
+        const keys = await redis.keys(`refresh_token:${userId}:*`);
+        if (keys.length > 0) {
+          await redis.del(...keys);
+        }
+      } catch (err) {
+        console.error('[AUTH] Redis replay cleanup failed:', err.message);
       }
       return res.status(403).json({ message: 'Invalid refresh token, please login' });
     }
 
     // Delete old token
-    await redis.del(`refresh_token:${userId}:${oldRefreshToken}`);
+    try {
+      await redis.del(`refresh_token:${userId}:${oldRefreshToken}`);
+    } catch (err) {
+      console.error('[AUTH] Redis token delete failed:', err.message);
+      return res.status(503).json({ message: 'Token refresh temporarily unavailable. Please login again.' });
+    }
 
     // Generate new tokens
     const userRole = req.user?.role || 'user';
     const { accessToken, refreshToken: newRefreshToken } = generateTokens(userId, userRole);
 
-    await redis.set(`refresh_token:${userId}:${newRefreshToken}`, 'valid', 'EX', 7 * 24 * 60 * 60);
+    try {
+      await redis.set(`refresh_token:${userId}:${newRefreshToken}`, 'valid', 'EX', 7 * 24 * 60 * 60);
+    } catch (err) {
+      console.error('[AUTH] Redis token rotate store failed:', err.message);
+      return res.status(503).json({ message: 'Token refresh temporarily unavailable. Please login again.' });
+    }
 
     setTokenCookies(res, accessToken, newRefreshToken);
 
@@ -159,7 +212,8 @@ exports.refreshToken = async (req, res) => {
       refreshToken: newRefreshToken,
     });
   } catch (error) {
-    res.status(500).json({ message: 'Internal Server Error' });
+    console.error('[AUTH] Token refresh error:', error.message);
+    res.status(500).json({ message: 'Failed to refresh token. Please login again.' });
   }
 };
 
@@ -169,7 +223,11 @@ exports.getCurrentUser = async (req, res) => {
     const user = await User.findById(req.user.id);
     res.json(user);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error('[AUTH] Get current user error:', error.message);
+    const message = process.env.NODE_ENV === 'production'
+      ? 'Failed to retrieve user information. Please try again later.'
+      : error.message;
+    res.status(500).json({ message });
   }
 };
 
@@ -192,12 +250,29 @@ exports.forgotPassword = async (req, res) => {
     user.resetTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
     await user.save({ validateBeforeSave: false });
 
-    // Send password reset email
-    await sendPasswordResetEmail(email, resetToken, user.name);
-
-    res.json({ message: 'Password reset link sent to your email' });
+    // Send password reset email - don't block if email fails
+    let emailSent = true;
+    try {
+      const mailInfo = await sendPasswordResetEmail(email, resetToken, user.name);
+      const payload = { message: 'Password reset link sent to your email' };
+      if (process.env.NODE_ENV !== 'production' && mailInfo?.previewUrl) {
+        payload.previewUrl = mailInfo.previewUrl;
+      }
+      return res.json(payload);
+    } catch (emailError) {
+      console.error('[AUTH] Password reset email failed, but token saved. User should retry or contact support.');
+      emailSent = false;
+      // Even if email fails, respond with generic message to avoid exposing implementation details
+      return res.status(500).json({ 
+        message: 'We encountered an issue sending the password reset email. Please try again later or contact support.' 
+      });
+    }
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    // Generic error message for other unexpected errors
+    const message = process.env.NODE_ENV === 'production' 
+      ? 'An unexpected error occurred. Please try again later.'
+      : error.message;
+    res.status(500).json({ message });
   }
 };
 
@@ -212,6 +287,10 @@ exports.resetPassword = async (req, res) => {
 
     if (newPassword !== confirmPassword) {
       return res.status(400).json({ message: 'Passwords do not match' });
+    }
+
+    if (!isBasicStrongPassword(newPassword)) {
+      return res.status(400).json({ message: 'Password must be at least 8 characters and include a number and symbol' });
     }
 
     // Hash the provided token
@@ -235,6 +314,10 @@ exports.resetPassword = async (req, res) => {
 
     res.json({ message: 'Password reset successfully' });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error('[AUTH] Reset password error:', error.message);
+    const message = process.env.NODE_ENV === 'production'
+      ? 'Password reset failed. Please try again later.'
+      : error.message;
+    res.status(500).json({ message });
   }
 };

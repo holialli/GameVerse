@@ -4,8 +4,7 @@ import axiosInstance from '../../lib/axios';
 
 const News = () => {
   const [articles, setArticles] = useState([]);
-  const [timeFilter, setTimeFilter] = useState('24h');
-  const [rankFilter, setRankFilter] = useState('hot');
+  const [refreshedAt, setRefreshedAt] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -26,6 +25,7 @@ const News = () => {
         const mapped = Array.isArray(res?.data?.articles) ? res.data.articles : [];
 
         setArticles(mapped);
+        setRefreshedAt(res?.data?.refreshedAt || '');
       } catch (err) {
         setError(err?.response?.data?.message || err.message || 'Failed to load gaming news');
       } finally {
@@ -62,53 +62,28 @@ const News = () => {
     );
   }
 
-  const now = Date.now();
-  const threshold = timeFilter === '24h'
-    ? now - 24 * 60 * 60 * 1000
-    : timeFilter === '7d'
-      ? now - 7 * 24 * 60 * 60 * 1000
-      : 0;
-
   const scored = articles
-    .filter((article) => {
-      if (!threshold) return true;
-      const createdAt = article?.createdAt ? new Date(article.createdAt).getTime() : 0;
-      return createdAt >= threshold;
-    })
-    .sort((a, b) => {
-      if (rankFilter === 'trending') return (Number(b.reactions || 0) + Number(b.comments || 0)) - (Number(a.reactions || 0) + Number(a.comments || 0));
-      if (rankFilter === 'controversial') return Number(b.comments || 0) - Number(a.comments || 0);
-      return Number(b.hotScore || 0) - Number(a.hotScore || 0);
-    })
+    .sort((a, b) => Number(b.hotScore || 0) - Number(a.hotScore || 0))
     .slice(0, 8);
 
   return (
     <section className="section">
       <div className="section-header">
         <h1 className="section-title">News & Updates</h1>
-        <p className="section-desc">Live hot stories ranked by community activity and recency.</p>
-      </div>
-
-      <div className={styles.filterRow}>
-        <label>
-          Time
-          <select value={timeFilter} onChange={(e) => setTimeFilter(e.target.value)}>
-            <option value="24h">Last 24 hours</option>
-            <option value="7d">Last 7 days</option>
-            <option value="all">All time</option>
-          </select>
-        </label>
-        <label>
-          Rank
-          <select value={rankFilter} onChange={(e) => setRankFilter(e.target.value)}>
-            <option value="hot">Hot</option>
-            <option value="trending">Trending</option>
-            <option value="controversial">Controversial</option>
-          </select>
-        </label>
+        <p className="section-desc">
+          Daily top stories from gaming publications plus major community trends.
+          {refreshedAt ? ` Refreshed: ${new Date(refreshedAt).toLocaleDateString()}.` : ''}
+        </p>
       </div>
 
       <div className={styles.newsGrid}>
+        {scored.length === 0 && (
+          <article className={styles.newsItem}>
+            <h2 className="card-title">No matching stories</h2>
+            <p className="card-meta">No stories available right now. Please try again in a few minutes.</p>
+          </article>
+        )}
+
         {scored.map((article) => {
           const tags = Array.isArray(article.tags) ? article.tags.join(', ') : (article.tags || '—');
           const externalUrl = safeExternalUrl(article.url);
@@ -134,11 +109,11 @@ const News = () => {
               <h2 className="card-title">{article.title}</h2>
               <p className="card-meta">Tags: {tags}</p>
               <div className={styles.metricsRow}>
-                <span className={styles.metricPill}>🔥 Hot Score {article.hotScore || 0}</span>
-                <span className={styles.metricPill}>💬 {article.comments || 0} comments</span>
-                <span className={styles.metricPill}>⚡ {formatReactions(article.reactions)} reactions</span>
+                <span className={styles.metricPill}>Hot Score {article.hotScore || 0}</span>
+                <span className={styles.metricPill}>{article.comments || 0} comments</span>
+                <span className={styles.metricPill}>{formatReactions(article.reactions)} reactions</span>
               </div>
-              <p>{(article.body || '').substring(0, 170)}...</p>
+              <p className={styles.bodyText}>{(article.body || '').substring(0, 170)}...</p>
               <div className={styles.sourceRow}>
                 {externalUrl ? (
                   <>

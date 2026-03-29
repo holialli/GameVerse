@@ -16,10 +16,31 @@ axiosInstance.interceptors.request.use((config) => {
 axiosInstance.interceptors.response.use(
   res => res,
   async err => {
-    if (err.response?.status === 401) {
+    if (err.response?.status === 401 && !err.config?._retry) {
       try {
+        err.config._retry = true;
         const refreshToken = localStorage.getItem('refreshToken');
-        await axios.post(`${API_BASE_URL}/auth/refresh`, { refreshToken }, { withCredentials: true });
+        if (!refreshToken) {
+          throw new Error('Missing refresh token');
+        }
+
+        const refreshResponse = await axios.post(
+          `${API_BASE_URL}/auth/refresh`,
+          { refreshToken },
+          { withCredentials: true }
+        );
+
+        const nextAccessToken = refreshResponse?.data?.accessToken;
+        const nextRefreshToken = refreshResponse?.data?.refreshToken;
+        if (nextAccessToken) {
+          localStorage.setItem('accessToken', nextAccessToken);
+          err.config.headers = err.config.headers || {};
+          err.config.headers.Authorization = `Bearer ${nextAccessToken}`;
+        }
+        if (nextRefreshToken) {
+          localStorage.setItem('refreshToken', nextRefreshToken);
+        }
+
         return axiosInstance(err.config);
       } catch (refreshErr) {
         localStorage.removeItem('accessToken');

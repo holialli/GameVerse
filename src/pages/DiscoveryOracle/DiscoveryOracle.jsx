@@ -1,24 +1,40 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import styles from './DiscoveryOracle.module.css';
 import axiosInstance from '../../lib/axios';
+import { userAPI } from '../../services/api';
+import { useAuth } from '../../contexts/AuthContext';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL
   ? `${process.env.REACT_APP_API_URL}/api`
   : 'http://localhost:5000/api';
 
+const QUICK_PROMPTS = [
+  'Souls-like with strong boss design and build variety',
+  'Chill farming or life-sim with low stress',
+  'Shooter with tactical communication and team roles',
+  'RPG where player choices change the ending',
+];
+
+const shuffleArray = (list) => {
+  const copy = [...list];
+  for (let i = copy.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+};
+
 const DiscoveryOracle = () => {
+  const { isAuthenticated } = useAuth();
   const [query, setQuery] = useState('');
   const [response, setResponse] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const [error, setError] = useState('');
   const [gameCards, setGameCards] = useState([]);
+  const [busyGameAction, setBusyGameAction] = useState('');
+  const [actionMessage, setActionMessage] = useState('');
   const bottomRef = useRef(null);
-  const quickPrompts = [
-    'Fast competitive shooter with team strategy',
-    'Story-rich RPG with meaningful choices',
-    'Relaxing cozy game for short sessions',
-    'Hard but fair action game like souls-likes',
-  ];
+  const quickPrompts = useMemo(() => shuffleArray(QUICK_PROMPTS), []);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -58,6 +74,7 @@ const DiscoveryOracle = () => {
 
     setResponse('');
     setError('');
+    setActionMessage('');
     setGameCards([]);
     setIsStreaming(true);
 
@@ -79,6 +96,7 @@ const DiscoveryOracle = () => {
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
+      let streamedText = '';
 
       while (true) {
         const { done, value } = await reader.read();
@@ -95,11 +113,22 @@ const DiscoveryOracle = () => {
 
           try {
             const parsed = JSON.parse(payload);
-            if (parsed.text) setResponse((prev) => prev + parsed.text);
+            if (parsed.text) {
+              streamedText += parsed.text;
+              setResponse((prev) => prev + parsed.text);
+            }
             if (parsed.error) setError(parsed.error);
           } catch (err) {
             // Ignore invalid chunk boundaries
           }
+        }
+      }
+
+      if (!streamedText.trim()) {
+        const fallback = await axiosInstance.post('/ai/chat', { prompt: query });
+        const answer = fallback?.data?.answer || '';
+        if (answer) {
+          setResponse(answer);
         }
       }
     } catch (err) {
@@ -136,6 +165,43 @@ const DiscoveryOracle = () => {
     });
   };
 
+  const addDiscoveredGame = async (game, status) => {
+    if (!isAuthenticated) {
+      setError('Please login first to add games to library or watchlist.');
+      return;
+    }
+
+    if (!game?.rawgId) {
+      setError('This recommendation is not mapped to a trackable game ID yet.');
+      return;
+    }
+
+    try {
+      setBusyGameAction(`${game.rawgId}-${status}`);
+      setError('');
+      setActionMessage('');
+
+      const result = await userAPI.addOrUpdateLibraryGame({
+        rawgId: game.rawgId,
+        rawgSlug: game.rawgSlug || String(game.title || '').toLowerCase().replace(/\s+/g, '-'),
+        title: game.title,
+        coverUrl: game.coverUrl || game.imageUrl || null,
+        status,
+      });
+
+      if (result?.error) {
+        setError(result.error);
+        return;
+      }
+
+      setActionMessage(result?.message || `${game.title} added to ${status}.`);
+    } catch (err) {
+      setError(err?.message || 'Failed to add game');
+    } finally {
+      setBusyGameAction('');
+    }
+  };
+
   return (
     <section className={styles.page}>
       <div className={styles.header}>
@@ -163,6 +229,7 @@ const DiscoveryOracle = () => {
       </div>
 
       {error && <div className={styles.error}>{error}</div>}
+      {actionMessage && <div className={styles.success}>{actionMessage}</div>}
 
       <article className={styles.responseBox}>
         {renderResponse()}
@@ -192,6 +259,24 @@ const DiscoveryOracle = () => {
                 <div className={styles.meta}>
                   <span>{game.genre || 'Unknown genre'}</span>
                   <span>Rating: {game.rating ?? 'N/A'}</span>
+                </div>
+                <div className={styles.actionsRow}>
+                  <button
+                    type="button"
+                    className={styles.addBtn}
+                    onClick={() => addDiscoveredGame(game, 'library')}
+                    disabled={busyGameAction === `${game.rawgId}-library` || !game.rawgId}
+                  >
+                    {busyGameAction === `${game.rawgId}-library` ? 'Adding...' : 'Add to Library'}
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.watchBtn}
+                    onClick={() => addDiscoveredGame(game, 'watchlist')}
+                    disabled={busyGameAction === `${game.rawgId}-watchlist` || !game.rawgId}
+                  >
+                    {busyGameAction === `${game.rawgId}-watchlist` ? 'Adding...' : 'Add to Watchlist'}
+                  </button>
                 </div>
               </article>
             );

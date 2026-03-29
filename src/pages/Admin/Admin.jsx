@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import axiosInstance from '../../lib/axios';
 import { useAuth } from '../../contexts/AuthContext';
@@ -10,24 +10,36 @@ const AdminPage = () => {
   const [topUsers, setTopUsers] = useState([]);
   const [users, setUsers] = useState([]);
   const [feedback, setFeedback] = useState([]);
+  const [pendingVideos, setPendingVideos] = useState([]);
+  const [approvedVideos, setApprovedVideos] = useState([]);
+  const [pendingEventRequests, setPendingEventRequests] = useState([]);
+  const [pendingJoinRequestEvents, setPendingJoinRequestEvents] = useState([]);
+  const [joinRequestsByEvent, setJoinRequestsByEvent] = useState({});
   const [auditLogs, setAuditLogs] = useState([]);
   const [maintenanceMode, setMaintenanceMode] = useState(false);
   const [announcement, setAnnouncement] = useState('');
   const [feedbackStatus, setFeedbackStatus] = useState('pending');
   const [resolutionDrafts, setResolutionDrafts] = useState({});
   const [editingTicketId, setEditingTicketId] = useState(null);
+  const [videoDurationDrafts, setVideoDurationDrafts] = useState({});
   const [busyAction, setBusyAction] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
+  const feedbackRef = useRef(null);
+  const videosRef = useRef(null);
+  const tournamentsRef = useRef(null);
+
+  const jumpTo = (targetRef) => {
+    targetRef?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
 
   const fetchAdminData = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
-      const [statsRes, usersRes, feedbackRes, logsRes, maintenanceRes, announcementRes] = await Promise.allSettled([
+      const [statsRes, usersRes, logsRes, maintenanceRes, announcementRes] = await Promise.allSettled([
         axiosInstance.get('/admin/stats'),
         axiosInstance.get('/admin/users'),
-        axiosInstance.get(`/admin/feedback?status=${feedbackStatus}`),
         axiosInstance.get('/admin/audit-logs?limit=40'),
         axiosInstance.get('/admin/config/maintenanceMode'),
         axiosInstance.get('/admin/config/announcement'),
@@ -39,9 +51,6 @@ const AdminPage = () => {
       }
       if (usersRes.status === 'fulfilled') {
         setUsers(Array.isArray(usersRes.value.data.users) ? usersRes.value.data.users : []);
-      }
-      if (feedbackRes.status === 'fulfilled') {
-        setFeedback(Array.isArray(feedbackRes.value.data.feedback) ? feedbackRes.value.data.feedback : []);
       }
       if (logsRes.status === 'fulfilled') {
         setAuditLogs(Array.isArray(logsRes.value.data.logs) ? logsRes.value.data.logs : []);
@@ -55,11 +64,76 @@ const AdminPage = () => {
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  const fetchFeedback = useCallback(async () => {
+    try {
+      const feedbackRes = await axiosInstance.get(`/admin/feedback?status=${feedbackStatus}`);
+      setFeedback(Array.isArray(feedbackRes.data.feedback) ? feedbackRes.data.feedback : []);
+    } catch (err) {
+      setError(err?.response?.data?.error || 'Could not load feedback tickets');
+    }
   }, [feedbackStatus]);
+
+  const fetchPendingVideos = useCallback(async () => {
+    try {
+      const videoRes = await axiosInstance.get('/admin/videos/pending');
+      setPendingVideos(Array.isArray(videoRes.data.videos) ? videoRes.data.videos : []);
+    } catch (err) {
+      setError(err?.response?.data?.error || 'Could not load pending videos');
+    }
+  }, []);
+
+  const fetchApprovedVideos = useCallback(async () => {
+    try {
+      const videoRes = await axiosInstance.get('/admin/videos/approved');
+      setApprovedVideos(Array.isArray(videoRes.data?.videos) ? videoRes.data.videos : []);
+    } catch (err) {
+      setError(err?.response?.data?.error || 'Could not load displayed videos');
+    }
+  }, []);
+
+  const fetchPendingEventRequests = useCallback(async () => {
+    try {
+      const res = await axiosInstance.get('/admin/events/requests');
+      setPendingEventRequests(Array.isArray(res.data?.events) ? res.data.events : []);
+    } catch (err) {
+      setError(err?.response?.data?.error || 'Could not load pending event requests');
+    }
+  }, []);
+
+  const fetchPendingJoinRequestEvents = useCallback(async () => {
+    try {
+      const res = await axiosInstance.get('/admin/events/join-requests/pending-events');
+      setPendingJoinRequestEvents(Array.isArray(res.data?.events) ? res.data.events : []);
+    } catch (err) {
+      setError(err?.response?.data?.error || 'Could not load pending join requests');
+    }
+  }, []);
 
   useEffect(() => {
     fetchAdminData();
   }, [fetchAdminData]);
+
+  useEffect(() => {
+    fetchFeedback();
+  }, [fetchFeedback]);
+
+  useEffect(() => {
+    fetchPendingVideos();
+  }, [fetchPendingVideos]);
+
+  useEffect(() => {
+    fetchApprovedVideos();
+  }, [fetchApprovedVideos]);
+
+  useEffect(() => {
+    fetchPendingEventRequests();
+  }, [fetchPendingEventRequests]);
+
+  useEffect(() => {
+    fetchPendingJoinRequestEvents();
+  }, [fetchPendingJoinRequestEvents]);
 
   if (user?.role !== 'admin') return <Navigate to="/" replace />;
   if (loading) return <div className={styles.state}>Loading admin control hub...</div>;
@@ -151,6 +225,124 @@ const AdminPage = () => {
     }
   };
 
+  const approveVideo = async (videoId) => {
+    const durationHours = Number(videoDurationDrafts[videoId] || 0);
+    const payload = Number.isFinite(durationHours) && durationHours > 0
+      ? { durationHours }
+      : {};
+
+    try {
+      setBusyAction(`video-approve-${videoId}`);
+      setError('');
+      await axiosInstance.patch(`/admin/videos/${videoId}/approve`, payload);
+      setPendingVideos((prev) => prev.filter((item) => item._id !== videoId));
+      await fetchApprovedVideos();
+      setVideoDurationDrafts((prev) => {
+        const next = { ...prev };
+        delete next[videoId];
+        return next;
+      });
+    } catch (err) {
+      setError(err?.response?.data?.error || err?.response?.data?.message || err.message || 'Could not approve video');
+    } finally {
+      setBusyAction('');
+    }
+  };
+
+  const rejectVideo = async (videoId) => {
+    try {
+      setBusyAction(`video-reject-${videoId}`);
+      setError('');
+      await axiosInstance.delete(`/admin/videos/${videoId}`);
+      setPendingVideos((prev) => prev.filter((item) => item._id !== videoId));
+      setApprovedVideos((prev) => prev.filter((item) => item._id !== videoId));
+      setVideoDurationDrafts((prev) => {
+        const next = { ...prev };
+        delete next[videoId];
+        return next;
+      });
+    } catch (err) {
+      setError(err?.response?.data?.error || 'Could not reject video');
+    } finally {
+      setBusyAction('');
+    }
+  };
+
+  const approveEventRequest = async (eventId) => {
+    try {
+      setBusyAction(`event-approve-${eventId}`);
+      setError('');
+      await axiosInstance.patch(`/admin/events/${eventId}/approve-request`);
+      setPendingEventRequests((prev) => prev.filter((item) => item._id !== eventId));
+      await fetchPendingJoinRequestEvents();
+    } catch (err) {
+      setError(err?.response?.data?.error || 'Could not approve event request');
+    } finally {
+      setBusyAction('');
+    }
+  };
+
+  const rejectEventRequest = async (eventId) => {
+    try {
+      setBusyAction(`event-reject-${eventId}`);
+      setError('');
+      await axiosInstance.patch(`/admin/events/${eventId}/reject-request`, { reason: 'Rejected by admin' });
+      setPendingEventRequests((prev) => prev.filter((item) => item._id !== eventId));
+      await fetchPendingJoinRequestEvents();
+    } catch (err) {
+      setError(err?.response?.data?.error || 'Could not reject event request');
+    } finally {
+      setBusyAction('');
+    }
+  };
+
+  const loadJoinRequests = async (eventId) => {
+    try {
+      setBusyAction(`join-load-${eventId}`);
+      setError('');
+      const res = await axiosInstance.get(`/admin/events/${eventId}/join-requests?status=pending`);
+      setJoinRequestsByEvent((prev) => ({ ...prev, [eventId]: Array.isArray(res.data?.requests) ? res.data.requests : [] }));
+    } catch (err) {
+      setError(err?.response?.data?.error || 'Could not load join requests');
+    } finally {
+      setBusyAction('');
+    }
+  };
+
+  const approveJoinRequest = async (eventId, userId) => {
+    try {
+      setBusyAction(`join-approve-${eventId}-${userId}`);
+      setError('');
+      await axiosInstance.patch(`/admin/events/${eventId}/join-requests/${userId}/approve`);
+      setJoinRequestsByEvent((prev) => ({
+        ...prev,
+        [eventId]: (prev[eventId] || []).filter((item) => String(item.userId?._id || item.userId) !== String(userId)),
+      }));
+      await fetchPendingJoinRequestEvents();
+    } catch (err) {
+      setError(err?.response?.data?.error || 'Could not approve join request');
+    } finally {
+      setBusyAction('');
+    }
+  };
+
+  const rejectJoinRequest = async (eventId, userId) => {
+    try {
+      setBusyAction(`join-reject-${eventId}-${userId}`);
+      setError('');
+      await axiosInstance.patch(`/admin/events/${eventId}/join-requests/${userId}/reject`, { reason: 'Rejected by admin' });
+      setJoinRequestsByEvent((prev) => ({
+        ...prev,
+        [eventId]: (prev[eventId] || []).filter((item) => String(item.userId?._id || item.userId) !== String(userId)),
+      }));
+      await fetchPendingJoinRequestEvents();
+    } catch (err) {
+      setError(err?.response?.data?.error || 'Could not reject join request');
+    } finally {
+      setBusyAction('');
+    }
+  };
+
   return (
     <section className={styles.page}>
       <header className={styles.hero}>
@@ -169,12 +361,32 @@ const AdminPage = () => {
         <article className={styles.card}><h3>Total Users</h3><p>{stats.totalUsers || 0}</p></article>
         <article className={styles.card}><h3>Active Users</h3><p>{stats.activeUsers || 0}</p></article>
         <article className={styles.card}><h3>Pending Complaints</h3><p>{stats.pendingFeedbackCount || 0}</p></article>
+        <article className={styles.card}><h3>Displayed Videos</h3><p>{stats.approvedVideosCount || approvedVideos.length || 0}</p></article>
         <article className={styles.card}><h3>Awaiting Event Results</h3><p>{stats.awaitingEventResultCount || 0}</p></article>
         <article className={styles.card}><h3>Shadow Bans</h3><p>{stats.shadowBannedUsers || 0}</p></article>
         <article className={styles.card}><h3>Weekly Admin Actions</h3><p>{stats.recentAuditCount || 0}</p></article>
       </div>
 
       <div className={styles.grid}>
+        <article className={styles.panel}>
+          <h2>Admin Review Queue</h2>
+          <div className={styles.reviewQueue}>
+            <button type="button" onClick={() => jumpTo(feedbackRef)}>
+              Feedback to Review: {feedback.filter((f) => f.status !== 'resolved').length}
+            </button>
+            <button type="button" onClick={() => jumpTo(videosRef)}>
+              Videos to Review: {pendingVideos.length}
+            </button>
+            <button type="button" onClick={() => jumpTo(tournamentsRef)}>
+              Tournament Requests: {pendingEventRequests.length}
+            </button>
+            <button type="button" onClick={() => jumpTo(tournamentsRef)}>
+              Join Requests: {pendingJoinRequestEvents.reduce((sum, item) => sum + Number(item.pendingJoinRequests || 0), 0)}
+            </button>
+          </div>
+          <p className={styles.metaText}>Use this queue to jump directly to active review sections.</p>
+        </article>
+
         <article className={styles.panel}>
           <h2>User Moderation</h2>
           {users.length === 0 ? <p className={styles.empty}>No users found.</p> : (
@@ -216,7 +428,7 @@ const AdminPage = () => {
           )}
         </article>
 
-        <article className={styles.panel}>
+        <article className={styles.panel} ref={feedbackRef}>
           <h2>Complaints & Feedback</h2>
           <div className={styles.inlineControls}>
             <button
@@ -318,6 +530,193 @@ const AdminPage = () => {
                 <li key={p.userId || idx}>
                   <span>#{idx + 1} {p.username}</span>
                   <span>L{p.level} • {p.xp} XP • {p.badgesCount} badges</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </article>
+
+        <article className={styles.panel} ref={videosRef}>
+          <h2>Video Approval Queue</h2>
+          {pendingVideos.length === 0 ? <p className={styles.empty}>No pending videos.</p> : (
+            <ul className={styles.videoList}>
+              {pendingVideos.map((video) => (
+                <li key={video._id} className={styles.videoItem}>
+                  <div className={styles.videoMeta}>
+                    <strong>{video.title || 'Untitled Clip'}</strong>
+                    <small>
+                      {video.platform || 'Unknown platform'} • {video.uploaderName || video.uploadedBy?.username || 'Unknown uploader'}
+                    </small>
+                    <a href={video.url} target="_blank" rel="noreferrer" className={styles.videoLink}>{video.url}</a>
+                    {video.description ? <p>{video.description}</p> : null}
+                  </div>
+                  <div className={styles.videoControls}>
+                    <input
+                      type="number"
+                      min="1"
+                      placeholder="Duration (hours)"
+                      value={videoDurationDrafts[video._id] || ''}
+                      onChange={(e) => setVideoDurationDrafts((prev) => ({ ...prev, [video._id]: e.target.value }))}
+                    />
+                    <div className={styles.actions}>
+                      <button
+                        type="button"
+                        onClick={() => approveVideo(video._id)}
+                        disabled={busyAction === `video-approve-${video._id}`}
+                      >
+                        {busyAction === `video-approve-${video._id}` ? 'Approving...' : 'Approve'}
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.ghostBtn}
+                        onClick={() => rejectVideo(video._id)}
+                        disabled={busyAction === `video-reject-${video._id}`}
+                      >
+                        {busyAction === `video-reject-${video._id}` ? 'Rejecting...' : 'Reject'}
+                      </button>
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </article>
+
+        <article className={styles.panel}>
+          <h2>Live Gallery Videos ({approvedVideos.length})</h2>
+          {approvedVideos.length === 0 ? <p className={styles.empty}>No approved videos currently displayed.</p> : (
+            <ul className={styles.videoList}>
+              {approvedVideos.slice(0, 100).map((video) => (
+                <li key={video._id} className={styles.videoItem}>
+                  <div className={styles.videoMeta}>
+                    <strong>{video.title || 'Untitled Clip'}</strong>
+                    <small>
+                      {video.platform || 'Unknown platform'} • {video.uploadedBy?.username || video.uploadedBy?.name || 'Unknown uploader'}
+                    </small>
+                    <a href={video.url} target="_blank" rel="noreferrer" className={styles.videoLink}>{video.url}</a>
+                    {video.activeUntil ? <p>Visible until: {new Date(video.activeUntil).toLocaleString()}</p> : <p>Visible until removed</p>}
+                  </div>
+                  <div className={styles.videoControls}>
+                    <button
+                      type="button"
+                      className={styles.ghostBtn}
+                      onClick={() => rejectVideo(video._id)}
+                      disabled={busyAction === `video-reject-${video._id}`}
+                    >
+                      {busyAction === `video-reject-${video._id}` ? 'Deleting...' : 'Delete Now'}
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </article>
+
+        <article className={styles.panel} ref={tournamentsRef}>
+          <h2>Tournament Requests</h2>
+          {pendingEventRequests.length === 0 ? <p className={styles.empty}>No pending tournament requests.</p> : (
+            <ul className={styles.videoList}>
+              {pendingEventRequests.map((event) => (
+                <li key={event._id} className={styles.videoItem}>
+                  <div className={styles.videoMeta}>
+                    <strong>{event.title}</strong>
+                    <small>{event.category || 'Tournament'} • by {event.requestedBy?.username || event.requestedBy?.name || 'user'}</small>
+                    {event.description ? <p>{event.description}</p> : null}
+                  </div>
+                  <div className={styles.videoControls}>
+                    <div className={styles.actions}>
+                      <button
+                        type="button"
+                        onClick={() => approveEventRequest(event._id)}
+                        disabled={busyAction === `event-approve-${event._id}`}
+                      >
+                        {busyAction === `event-approve-${event._id}` ? 'Approving...' : 'Approve'}
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.ghostBtn}
+                        onClick={() => rejectEventRequest(event._id)}
+                        disabled={busyAction === `event-reject-${event._id}`}
+                      >
+                        {busyAction === `event-reject-${event._id}` ? 'Rejecting...' : 'Reject'}
+                      </button>
+                    </div>
+                    <button
+                      type="button"
+                      className={styles.ghostBtn}
+                      onClick={() => loadJoinRequests(event._id)}
+                      disabled={busyAction === `join-load-${event._id}`}
+                    >
+                      {busyAction === `join-load-${event._id}` ? 'Loading...' : 'Load Join Requests'}
+                    </button>
+                    {(joinRequestsByEvent[event._id] || []).map((reqItem) => {
+                      const targetUserId = String(reqItem.userId?._id || reqItem.userId);
+                      return (
+                        <div key={targetUserId} className={styles.joinRequestRow}>
+                          <small>{reqItem.userId?.username || reqItem.userId?.name || 'user'}</small>
+                          <div className={styles.actions}>
+                            <button
+                              type="button"
+                              onClick={() => approveJoinRequest(event._id, targetUserId)}
+                              disabled={busyAction === `join-approve-${event._id}-${targetUserId}`}
+                            >Approve</button>
+                            <button
+                              type="button"
+                              className={styles.ghostBtn}
+                              onClick={() => rejectJoinRequest(event._id, targetUserId)}
+                              disabled={busyAction === `join-reject-${event._id}-${targetUserId}`}
+                            >Reject</button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          <h3 className={styles.subSectionTitle}>Pending Join Requests</h3>
+          {pendingJoinRequestEvents.length === 0 ? <p className={styles.empty}>No pending join requests.</p> : (
+            <ul className={styles.videoList}>
+              {pendingJoinRequestEvents.map((event) => (
+                <li key={`join-${event._id}`} className={styles.videoItem}>
+                  <div className={styles.videoMeta}>
+                    <strong>{event.title}</strong>
+                    <small>{event.category || 'Tournament'} • Pending: {event.pendingJoinRequests}</small>
+                    {event.description ? <p>{event.description}</p> : null}
+                  </div>
+                  <div className={styles.videoControls}>
+                    <button
+                      type="button"
+                      className={styles.ghostBtn}
+                      onClick={() => loadJoinRequests(event._id)}
+                      disabled={busyAction === `join-load-${event._id}`}
+                    >
+                      {busyAction === `join-load-${event._id}` ? 'Loading...' : 'Load Join Requests'}
+                    </button>
+                    {(joinRequestsByEvent[event._id] || []).map((reqItem) => {
+                      const targetUserId = String(reqItem.userId?._id || reqItem.userId);
+                      return (
+                        <div key={`${event._id}-${targetUserId}`} className={styles.joinRequestRow}>
+                          <small>{reqItem.userId?.username || reqItem.userId?.name || 'user'}</small>
+                          <div className={styles.actions}>
+                            <button
+                              type="button"
+                              onClick={() => approveJoinRequest(event._id, targetUserId)}
+                              disabled={busyAction === `join-approve-${event._id}-${targetUserId}`}
+                            >Approve</button>
+                            <button
+                              type="button"
+                              className={styles.ghostBtn}
+                              onClick={() => rejectJoinRequest(event._id, targetUserId)}
+                              disabled={busyAction === `join-reject-${event._id}-${targetUserId}`}
+                            >Reject</button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </li>
               ))}
             </ul>

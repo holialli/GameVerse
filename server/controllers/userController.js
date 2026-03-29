@@ -277,6 +277,18 @@ exports.addOrUpdateUserGame = async (req, res) => {
       await userGame.save();
       await awardXP(req.user.id, 50, 'Pioneer');
     } else {
+      const nextStatus = status || userGame.status;
+      const unchangedStatus = nextStatus === userGame.status;
+      const unchangedRating = rating === undefined;
+
+      if (unchangedStatus && unchangedRating) {
+        return res.status(200).json({
+          message: `${title || userGame.title} is already in your ${nextStatus}`,
+          alreadyExists: true,
+          game: userGame,
+        });
+      }
+
       userGame.status = status || userGame.status;
       if (rating !== undefined) userGame.rating = rating;
       await userGame.save();
