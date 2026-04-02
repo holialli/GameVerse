@@ -207,6 +207,11 @@ const DiscoveryOracle = () => {
       <div className={styles.header}>
         <h1>Discovery Oracle</h1>
         <p>Get AI game recommendations and instantly map them to your catalog.</p>
+        {!isAuthenticated && (
+          <p style={{ color: '#ffa500', marginTop: '0.5rem' }}>
+            Sign in to add discovered games to your library or watchlist.
+          </p>
+        )}
       </div>
 
       <form onSubmit={handleSearch} className={styles.form}>
@@ -214,10 +219,10 @@ const DiscoveryOracle = () => {
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="I want a game like Elden Ring but sci-fi"
-          disabled={isStreaming}
+          placeholder={isAuthenticated ? "I want a game like Elden Ring but sci-fi" : "Sign in to search for recommendations"}
+          disabled={isStreaming || !isAuthenticated}
         />
-        <button type="submit" disabled={isStreaming || !query.trim()}>
+        <button type="submit" disabled={isStreaming || !query.trim() || !isAuthenticated}>
           {isStreaming ? 'Thinking...' : 'Discover'}
         </button>
       </form>

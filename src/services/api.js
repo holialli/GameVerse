@@ -2,8 +2,8 @@ const API_BASE_URL = process.env.REACT_APP_API_URL ? `${process.env.REACT_APP_AP
 const getToken = () => localStorage.getItem('accessToken');
 
 export const authAPI = {
-  register: (name, email, password, confirmPassword) =>
-    fetch(`${API_BASE_URL}/auth/register`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, email, password, confirmPassword }) }).then(res => res.json()),
+  register: (name, username, email, password, confirmPassword) =>
+    fetch(`${API_BASE_URL}/auth/register`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, username, email, password, confirmPassword }) }).then(res => res.json()),
   login: (email, password) =>
     fetch(`${API_BASE_URL}/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password }) }).then(res => res.json()),
   getCurrentUser: (token) => fetch(`${API_BASE_URL}/auth/me`, { headers: { Authorization: `Bearer ${token}` } }).then(res => res.json()),

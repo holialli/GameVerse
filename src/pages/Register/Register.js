@@ -5,6 +5,7 @@ import styles from './Register.module.css';
 
 const Register = () => {
   const [name, setName] = useState('');
+  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -29,6 +30,7 @@ const Register = () => {
     setError('');
 
     const trimmedName = String(name || '').trim();
+    const trimmedUsername = String(username || '').trim();
     const trimmedEmail = String(email || '').trim();
 
     if (trimmedName.length < 2) {
@@ -39,6 +41,12 @@ const Register = () => {
     const emailRegex = /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,})+$/;
     if (!emailRegex.test(trimmedEmail)) {
       setError('Please enter a valid email address.');
+      return;
+    }
+
+    const usernameRegex = /^[a-zA-Z0-9_-]{3,30}$/;
+    if (!usernameRegex.test(trimmedUsername)) {
+      setError('Username must be 3-30 characters and use only letters, numbers, _ or -.');
       return;
     }
 
@@ -54,7 +62,7 @@ const Register = () => {
 
     setIsLoading(true);
     try {
-      await register(trimmedName, trimmedEmail, password, confirmPassword);
+      await register(trimmedName, trimmedUsername, trimmedEmail, password, confirmPassword);
       navigate('/dashboard');
     } catch (err) {
       setError(err.message || 'Registration failed');
@@ -80,6 +88,18 @@ const Register = () => {
               onChange={(e) => setName(e.target.value)}
               required
               placeholder="Your name"
+            />
+          </div>
+
+          <div className={styles.formGroup}>
+            <label htmlFor="username">Username</label>
+            <input
+              type="text"
+              id="username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              required
+              placeholder="Choose a username (letters, numbers, _, -)"
             />
           </div>
 

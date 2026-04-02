@@ -79,11 +79,7 @@ function App() {
 
           <Route
             path="/discovery"
-            element={
-              <ProtectedRoute>
-                <DiscoveryOracle />
-              </ProtectedRoute>
-            }
+            element={<DiscoveryOracle />}
           />
 
           <Route

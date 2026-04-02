@@ -2,6 +2,7 @@ const Joi = require('joi');
 
 exports.registerSchema = Joi.object({
   name: Joi.string().required().min(2).max(50),
+  username: Joi.string().required().min(3).max(30).pattern(/^[a-zA-Z0-9_-]+$/),
   email: Joi.string().email().required(),
   password: Joi.string()
     .required()

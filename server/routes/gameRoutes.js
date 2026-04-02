@@ -10,9 +10,9 @@ const { createGameSchema, updateGameSchema } = require('../utils/validationSchem
 router.get('/search', gameController.searchInternetGames);
 router.get('/', gameController.getAllGames);
 router.get('/:id', gameController.getGameById);
+router.post('/hydrate', gameController.hydrateGames);
 
 // Protected routes
-router.post('/hydrate', authMiddleware, gameController.hydrateGames);
 router.post('/', authMiddleware, upload.single('image'), validateRequest(createGameSchema), gameController.createGame);
 router.patch('/:id', authMiddleware, upload.single('image'), validateRequest(updateGameSchema), gameController.updateGame);
 router.delete('/:id', authMiddleware, gameController.deleteGame);

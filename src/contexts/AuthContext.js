@@ -45,12 +45,12 @@ export const AuthProvider = ({ children }) => {
     return payload || {};
   };
 
-  const register = async (name, email, password, confirmPassword) => {
+  const register = async (name, username, email, password, confirmPassword) => {
     try {
       const response = await fetch(`${API_BASE_URL}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password, confirmPassword }),
+        body: JSON.stringify({ name, username, email, password, confirmPassword }),
       });
 
       const data = await parseApiResponse(response, 'Registration failed');

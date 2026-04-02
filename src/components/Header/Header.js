@@ -23,7 +23,7 @@ const Header = () => {
             <li><NavLink to="/news">News</NavLink></li>
             <li><NavLink to="/compatibility">Compatibility</NavLink></li>
 
-            {isAuthenticated && !isAdmin && <li><NavLink to="/discovery">Discover</NavLink></li>}
+            {!isAdmin && <li><NavLink to="/discovery">Discover</NavLink></li>}
             {isAuthenticated && !isAdmin && <li><NavLink to="/events">Events</NavLink></li>}
             {isAuthenticated && !isAdmin && <li><NavLink to="/gallery">Gallery</NavLink></li>}
             {isAuthenticated && !isAdmin && <li><NavLink to="/contact">Contact</NavLink></li>}

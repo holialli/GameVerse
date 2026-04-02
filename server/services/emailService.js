@@ -2,20 +2,10 @@ const nodemailer = require('nodemailer');
 
 let cachedTransporter = null;
 const APP_CLIENT_URL = 'https://game-verse.tech';
+const DEFAULT_MAIL_FROM = 'GameVerse <no-reply@game-verse.tech>';
 
 const resolveMailFrom = () => {
-  const explicitFrom = process.env.EMAIL_FROM || process.env.CONTACT_EMAIL || process.env.SMTP_FROM;
-  if (explicitFrom) return explicitFrom;
-
-  // Resend allows onboarding@resend.dev for unverified/testing senders.
-  if ((process.env.SMTP_HOST || '').includes('resend.com')) {
-    return 'GameVerse <onboarding@resend.dev>';
-  }
-
-  return process.env.EMAIL_FROM
-    || process.env.CONTACT_EMAIL
-    || process.env.SMTP_FROM
-    || 'GameVerse <noreply@game-verse.tech>';
+  return DEFAULT_MAIL_FROM;
 };
 
 const resolveClientUrl = () => {

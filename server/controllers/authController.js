@@ -59,7 +59,7 @@ const storeRefreshTokenIfAvailable = async (userId, refreshToken) => {
 // Register user
 exports.register = async (req, res) => {
   try {
-    const { name, email, password, confirmPassword } = req.validatedBody;
+    const { name, username, email, password, confirmPassword } = req.validatedBody;
 
     if (password !== confirmPassword) {
       return res.status(400).json({ message: 'Passwords do not match' });
@@ -75,8 +75,14 @@ exports.register = async (req, res) => {
       return res.status(400).json({ message: 'Email already registered' });
     }
 
+    // Check if username is taken
+    const existingUsername = await User.findOne({ username });
+    if (existingUsername) {
+      return res.status(400).json({ message: 'Username already taken' });
+    }
+
     // Create new user
-    const user = await User.create({ name, email, password });
+    const user = await User.create({ name, username, email, password });
 
     // Send welcome email (async, don't wait)
     sendWelcomeEmail(email, name).catch(err => console.error('Email error:', err));
@@ -94,6 +100,7 @@ exports.register = async (req, res) => {
       user: {
         id: user._id,
         name: user.name,
+        username: user.username,
         email: user.email,
         role: user.role,
       },
@@ -137,6 +144,7 @@ exports.login = async (req, res) => {
       user: {
         id: user._id,
         name: user.name,
+        username: user.username,
         email: user.email,
         role: user.role,
       },
@@ -214,6 +222,22 @@ exports.refreshToken = async (req, res) => {
   } catch (error) {
     console.error('[AUTH] Token refresh error:', error.message);
     res.status(500).json({ message: 'Failed to refresh token. Please login again.' });
+  }
+};
+
+// Public metadata for Discovery Oracle landing/bootstrapping.
+exports.getDiscoveryOraclePublic = async (req, res) => {
+  try {
+    res.json({
+      feature: 'discovery-oracle',
+      access: 'public',
+      status: 'available',
+      requiresAuthForSearch: true,
+      message: 'Discovery Oracle is available. Sign in to start recommendation queries.',
+    });
+  } catch (error) {
+    console.error('[AUTH] Discovery Oracle public error:', error.message);
+    res.status(500).json({ message: 'Failed to load Discovery Oracle metadata' });
   }
 };
 
