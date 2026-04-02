@@ -73,6 +73,15 @@
   padding: 0.6rem 0.75rem;
 }
 
+.error {
+  margin-top: 0.8rem;
+  border-radius: 10px;
+  border: 1px solid #8c3240;
+  background: #2d141b;
+  color: #ffd3da;
+  padding: 0.6rem 0.75rem;
+}
+
 .form {
   margin-top: 0.8rem;
   border: 1px solid var(--border);

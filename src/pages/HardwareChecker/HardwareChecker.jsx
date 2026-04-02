@@ -1,6 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import axiosInstance from '../../lib/axios';
 import styles from './HardwareChecker.module.css';
+import { useAuth } from '../../contexts/AuthContext';
+import SEO from '../../components/SEO/SEO';
 
 const RAM_OPTIONS = [4, 8, 12, 16, 24, 32, 48, 64, 96, 128];
 
@@ -13,6 +16,7 @@ const PLATFORM_OPTIONS = [
 ];
 
 const HardwareChecker = () => {
+  const { isAuthenticated } = useAuth();
   const [libraryGames, setLibraryGames] = useState([]);
   const [hardware, setHardware] = useState([]);
   const [form, setForm] = useState({ rawgId: '', cpuId: '', gpuId: '', ramGb: 16, platform: 'pc' });
@@ -26,13 +30,13 @@ const HardwareChecker = () => {
       setIsLoading(true);
       setError('');
       try {
-        const [libraryRes, hardwareRes] = await Promise.all([
-          axiosInstance.get('/users/games/library'),
-          axiosInstance.get('/hardware/index'),
-        ]);
-
-        const tracked = Array.isArray(libraryRes.data.games)
-          ? libraryRes.data.games.filter((g) => g.status === 'library' || g.status === 'watchlist')
+        const hardwareRes = await axiosInstance.get('/hardware/index');
+        const tracked = isAuthenticated
+          ? await axiosInstance.get('/users/games/library').then((libraryRes) => (
+            Array.isArray(libraryRes.data.games)
+              ? libraryRes.data.games.filter((g) => g.status === 'library' || g.status === 'watchlist')
+              : []
+          ))
           : [];
 
         const hw = Array.isArray(hardwareRes.data.hardware) ? hardwareRes.data.hardware : [];
@@ -58,13 +62,18 @@ const HardwareChecker = () => {
     };
 
     load();
-  }, []);
+  }, [isAuthenticated]);
 
   const cpus = useMemo(() => hardware.filter((h) => h.type === 'cpu'), [hardware]);
   const gpus = useMemo(() => hardware.filter((h) => h.type === 'gpu'), [hardware]);
 
   const checkCompatibility = async (e) => {
     e.preventDefault();
+    if (!isAuthenticated) {
+      setError('Sign in to check compatibility for a game in your library or watchlist.');
+      return;
+    }
+
     setIsChecking(true);
     setError('');
 
@@ -98,9 +107,19 @@ const HardwareChecker = () => {
 
   return (
     <section className={styles.page}>
+      <SEO
+        title="Compatibility Lab"
+        description="Compare tracked games against GameVerse hardware profiles and performance estimates."
+        url="https://game-verse.tech/compatibility"
+      />
       <header className={styles.header}>
         <h1>Compatibility Lab</h1>
         <p>Evaluate performance for games you already track in your library/watchlist.</p>
+        {!isAuthenticated && (
+          <p className={styles.publicNote}>
+            The hardware catalog is public. Sign in to run full compatibility checks against your tracked games.
+          </p>
+        )}
       </header>
 
       {error && <div className={styles.error}>{error}</div>}
@@ -108,10 +127,18 @@ const HardwareChecker = () => {
       <form className={styles.form} onSubmit={checkCompatibility}>
         <label>
           Select Game (From Your Library/Watchlist)
-          <select value={form.rawgId} onChange={(e) => setForm((p) => ({ ...p, rawgId: e.target.value }))}>
-            {libraryGames.map((g) => (
-              <option key={`${g.rawgId}-${g.status}`} value={g.rawgId}>{g.title} ({g.status})</option>
-            ))}
+          <select
+            value={form.rawgId}
+            onChange={(e) => setForm((p) => ({ ...p, rawgId: e.target.value }))}
+            disabled={!isAuthenticated}
+          >
+            {isAuthenticated ? (
+              libraryGames.map((g) => (
+                <option key={`${g.rawgId}-${g.status}`} value={g.rawgId}>{g.title} ({g.status})</option>
+              ))
+            ) : (
+              <option value="">Sign in to choose a tracked game</option>
+            )}
           </select>
         </label>
 
@@ -157,12 +184,19 @@ const HardwareChecker = () => {
           </select>
         </label>
 
-        <button type="submit" disabled={isChecking || !form.rawgId || !form.cpuId || !form.gpuId}>
+        <button type="submit" disabled={isChecking || !isAuthenticated || !form.rawgId || !form.cpuId || !form.gpuId}>
           {isChecking ? 'Evaluating...' : 'Evaluate Performance'}
         </button>
       </form>
 
-      {libraryGames.length === 0 && <p className={styles.emptyHint}>You have no tracked games yet. Add games from the Game Radar page first.</p>}
+      {!isAuthenticated ? (
+        <div className={styles.emptyHint}>
+          <p>You can browse the hardware catalog publicly, but full compatibility checks require a signed-in account.</p>
+          <Link to="/login">Sign in to continue</Link>
+        </div>
+      ) : libraryGames.length === 0 ? (
+        <p className={styles.emptyHint}>You have no tracked games yet. Add games from the Game Radar page first.</p>
+      ) : null}
 
       {result && (
         <article className={`${styles.result} ${resultTierClass}`.trim()}>

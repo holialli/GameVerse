@@ -118,9 +118,24 @@ exports.checkCompatibility = async (req, res) => {
   try {
     const { rawgId } = req.params;
     const { cpuId, gpuId, ramGb = 16, platform = 'pc' } = req.query;
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return res.json({
+        requiresAuth: true,
+        message: 'Sign in to check compatibility against a tracked game in your library or watchlist.',
+        status: 'Preview',
+        tier: 'Public preview',
+        game: { rawgId: Number(rawgId) || rawgId },
+        tips: [
+          'Browse the public hardware catalog below.',
+          'Sign in to run a full compatibility analysis for your tracked games.',
+        ],
+      });
+    }
 
     const userGame = await UserGame.findOne({
-      userId: req.user.id,
+      userId,
       rawgId: Number(rawgId),
       status: { $in: ['library', 'watchlist'] },
     }).lean();

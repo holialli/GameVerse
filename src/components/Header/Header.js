@@ -19,11 +19,11 @@ const Header = () => {
         <nav className="primary-nav" aria-label="Primary">
           <ul className="nav-list">
             <li><NavLink to="/">{isAuthenticated ? 'Dashboard' : 'Home'}</NavLink></li>
+            <li><NavLink to="/games">Games</NavLink></li>
             <li><NavLink to="/news">News</NavLink></li>
+            <li><NavLink to="/compatibility">Compatibility</NavLink></li>
 
-            {isAuthenticated && !isAdmin && <li><NavLink to="/games">Games</NavLink></li>}
             {isAuthenticated && !isAdmin && <li><NavLink to="/discovery">Discover</NavLink></li>}
-            {isAuthenticated && !isAdmin && <li><NavLink to="/compatibility">Compatibility</NavLink></li>}
             {isAuthenticated && !isAdmin && <li><NavLink to="/events">Events</NavLink></li>}
             {isAuthenticated && !isAdmin && <li><NavLink to="/gallery">Gallery</NavLink></li>}
             {isAuthenticated && !isAdmin && <li><NavLink to="/contact">Contact</NavLink></li>}

@@ -1,8 +1,13 @@
 {
   "short_name": "GameVerse",
-  "name": "GameVerse - Your Gaming Universe",
-  "description": "Explore worlds, master genres, and stay ahead of gaming culture",
+  "name": "GameVerse",
+  "description": "Explore GameVerse for games, gaming news, and compatibility tools",
   "icons": [
+    {
+      "src": "favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    },
     {
       "src": "favicon.ico",
       "sizes": "64x64 32x32 24x24 16x16",
@@ -11,20 +16,12 @@
     {
       "src": "web-app-manifest-192x192.png",
       "type": "image/png",
-      "sizes": "192x192",
-      "purpose": "any"
+      "sizes": "192x192"
     },
     {
       "src": "web-app-manifest-512x512.png",
       "type": "image/png",
-      "sizes": "512x512",
-      "purpose": "any"
-    },
-    {
-      "src": "web-app-manifest-192x192.png",
-      "type": "image/png",
-      "sizes": "192x192",
-      "purpose": "maskable"
+      "sizes": "512x512"
     }
   ],
   "start_url": ".",

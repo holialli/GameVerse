@@ -4,6 +4,8 @@ import styles from './Home.module.css';
 import Card from '../../components/Card/card';
 import AskAI from '../../components/AskAI/AskAI'; 
 import { optimizeUnsplashUrl } from '../../utils/imageOptimization';
+import SEO from '../../components/SEO/SEO';
+import { generateOrganizationSchema } from '../../components/JSONLDSchemas/VideoGameSchema';
 
 const defaultHighlights = [
   {
@@ -41,6 +43,12 @@ const Home = () => {
 
   return (
     <>
+      <SEO
+        title="GameVerse Home"
+        description="Explore GameVerse games, gaming news, and compatibility tools from a single public homepage."
+        url="https://game-verse.tech/"
+        jsonLd={generateOrganizationSchema()}
+      />
       <section className={styles.hero}>
         <img
           src="/images/fighting.webp"
@@ -58,6 +66,7 @@ const Home = () => {
           <div className="hero-actions">
             <Link className="button primary" to="/games">Explore Games</Link>
             <Link className="button ghost" to="/news">Latest News</Link>
+            <Link className="button ghost" to="/compatibility">Check Compatibility</Link>
           </div>
           <AskAI />
         </div>

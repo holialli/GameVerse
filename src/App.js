@@ -10,6 +10,7 @@ import Contact from './pages/Contact/Contact';
 import VideoHub from './pages/VideoHub/VideoHub';
 import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute/ProtectedRoute';
+import AnalyticsScripts from './components/Analytics/AnalyticsScripts';
 import Login from './pages/Login/Login';
 import Register from './pages/Register/Register';
 import ForgotPassword from './pages/ForgotPassword/ForgotPassword';
@@ -31,6 +32,7 @@ function App() {
   return (
     <HelmetProvider>
       <AuthProvider>
+        <AnalyticsScripts />
         <Layout>
           <Routes>
             <Route path="/" element={<RootExperience />} />
@@ -61,11 +63,7 @@ function App() {
           />
           <Route
             path="/games"
-            element={
-              <ProtectedRoute>
-                <Games />
-              </ProtectedRoute>
-            }
+            element={<Games />}
           />
 
           <Route
@@ -90,11 +88,7 @@ function App() {
 
           <Route
             path="/compatibility"
-            element={
-              <ProtectedRoute>
-                <HardwareChecker />
-              </ProtectedRoute>
-            }
+            element={<HardwareChecker />}
           />
 
           <Route

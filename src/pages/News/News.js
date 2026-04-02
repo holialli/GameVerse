@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styles from './News.module.css'; // CSS Module
 import axiosInstance from '../../lib/axios';
+import SEO from '../../components/SEO/SEO';
 
 const News = () => {
   const [articles, setArticles] = useState([]);
@@ -68,6 +69,11 @@ const News = () => {
 
   return (
     <section className="section">
+      <SEO
+        title="Gaming News"
+        description="Read the latest gaming publications and community trends on GameVerse."
+        url="https://game-verse.tech/news"
+      />
       <div className="section-header">
         <h1 className="section-title">News & Updates</h1>
         <p className="section-desc">

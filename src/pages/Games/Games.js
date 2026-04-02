@@ -1,7 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import styles from './Games.module.css';
 import { gameAPI, userAPI } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
+import SEO from '../../components/SEO/SEO';
 
 const COMMON_GENRES = [
   'Action',
@@ -32,7 +34,7 @@ const COMMON_PLATFORMS = [
 ];
 
 const Games = () => {
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const [search, setSearch] = useState('');
   const [selectedGenre, setSelectedGenre] = useState('all');
   const [selectedPlatform, setSelectedPlatform] = useState('all');
@@ -87,9 +89,13 @@ const Games = () => {
   useEffect(() => {
     if (user?.role !== 'admin') {
       runSearch('');
-      refreshTrackedGames();
+      if (isAuthenticated) {
+        refreshTrackedGames();
+      } else {
+        setTrackedById({});
+      }
     }
-  }, [refreshTrackedGames, runSearch, user?.role]);
+  }, [isAuthenticated, refreshTrackedGames, runSearch, user?.role]);
 
   const genres = useMemo(() => ['all', ...COMMON_GENRES, 'other'], []);
 
@@ -104,6 +110,11 @@ const Games = () => {
     }), [games]);
 
   const addToList = async (game, status) => {
+    if (!isAuthenticated) {
+      setMessage('Sign in to add games to your library or watchlist.');
+      return;
+    }
+
     try {
       setSavingId(`${game.rawgId}-${status}`);
       setError('');
@@ -160,9 +171,15 @@ const Games = () => {
 
   return (
     <section className={styles.container}>
+      <SEO
+        title="Game Radar"
+        description="Browse the GameVerse game catalog and sign in to track titles in your library or watchlist."
+        url="https://game-verse.tech/games"
+      />
       <div className={styles.header}>
         <h1>Global Game Radar</h1>
         <p>Track trending hits, filter the results, and add games to your library or watchlist instantly.</p>
+        {!isAuthenticated && <p className={styles.publicNote}>Browse freely. Sign in to save games to your tracking list.</p>}
       </div>
 
       <form
@@ -246,24 +263,33 @@ const Games = () => {
                 </div>
 
                 <div className={styles.actions}>
-                  <button
-                    className={styles.addBtn}
-                    onClick={() => addToList(game, 'library')}
-                    disabled={savingId !== null || trackedById[String(game.rawgId)] === 'library'}
-                  >
-                    {trackedById[String(game.rawgId)] === 'library'
-                      ? 'In Library'
-                      : (savingId === `${game.rawgId}-library` ? 'Adding...' : 'Add to Library')}
-                  </button>
-                  <button
-                    className={styles.watchBtn}
-                    onClick={() => addToList(game, 'watchlist')}
-                    disabled={savingId !== null || trackedById[String(game.rawgId)] === 'watchlist'}
-                  >
-                    {trackedById[String(game.rawgId)] === 'watchlist'
-                      ? 'In Watchlist'
-                      : (savingId === `${game.rawgId}-watchlist` ? 'Adding...' : 'Add to Watchlist')}
-                  </button>
+                  {isAuthenticated ? (
+                    <>
+                      <button
+                        className={styles.addBtn}
+                        onClick={() => addToList(game, 'library')}
+                        disabled={savingId !== null || trackedById[String(game.rawgId)] === 'library'}
+                      >
+                        {trackedById[String(game.rawgId)] === 'library'
+                          ? 'In Library'
+                          : (savingId === `${game.rawgId}-library` ? 'Adding...' : 'Add to Library')}
+                      </button>
+                      <button
+                        className={styles.watchBtn}
+                        onClick={() => addToList(game, 'watchlist')}
+                        disabled={savingId !== null || trackedById[String(game.rawgId)] === 'watchlist'}
+                      >
+                        {trackedById[String(game.rawgId)] === 'watchlist'
+                          ? 'In Watchlist'
+                          : (savingId === `${game.rawgId}-watchlist` ? 'Adding...' : 'Add to Watchlist')}
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <Link className={styles.addBtn} to="/login">Sign in to track</Link>
+                      <Link className={styles.watchBtn} to="/register">Create account</Link>
+                    </>
+                  )}
                 </div>
               </div>
             </article>

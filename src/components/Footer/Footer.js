@@ -16,7 +16,9 @@ const Footer = () => {
       <div className="footer-inner">
         <small>© {year} GameVerse</small>
         <div className="footer-links">
+          <Link to="/games">Games</Link>
           <Link to="/news">News</Link>
+          <Link to="/compatibility">Compatibility</Link>
           {!isAuthenticated && <Link to="/login">Login</Link>}
           {!isAuthenticated && <Link to="/register">Register</Link>}
           {isAuthenticated && !isAdmin && <Link to="/contact">Contact</Link>}

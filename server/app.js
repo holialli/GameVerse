@@ -20,11 +20,11 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'"],
+      scriptSrc: ["'self'", "https://www.googletagmanager.com", "https://static.cloudflareinsights.com"],
       styleSrc: ["'self'"],
       imgSrc: ["'self'", "data:", "https:"],
       mediaSrc: ["'self'", "https:"],
-      connectSrc: ["'self'", "https://game-verse.tech"],
+      connectSrc: ["'self'", "https://game-verse.tech", "https://www.google-analytics.com", "https://region1.google-analytics.com", "https://static.cloudflareinsights.com"],
       frameSrc: ["'self'", "https:"]
     }
   }

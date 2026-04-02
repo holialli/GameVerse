@@ -14,6 +14,11 @@
   margin-top: 0.5rem;
 }
 
+.publicNote {
+  margin-top: 0.5rem;
+  color: var(--muted);
+}
+
 .form {
   margin-top: 1rem;
   display: grid;

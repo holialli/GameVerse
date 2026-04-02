@@ -10,6 +10,7 @@ const Profile = () => {
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({ name: '', username: '', bio: '', isPrivate: false, avatar: '' });
   const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
 
   const load = async () => {
     const [profileRes, libraryRes] = await Promise.all([
@@ -44,10 +45,17 @@ const Profile = () => {
 
   const saveProfile = async (e) => {
     e.preventDefault();
-    await axiosInstance.patch('/users/me/profile', form);
-    setMessage('Profile updated.');
-    setEditing(false);
-    await load();
+    setError('');
+    setMessage('');
+
+    try {
+      await axiosInstance.patch('/users/me/profile', form);
+      setMessage('Profile updated.');
+      setEditing(false);
+      await load();
+    } catch (err) {
+      setError(err?.response?.data?.message || 'Unable to save profile changes.');
+    }
   };
 
   if (!profile) return <div className={styles.state}>Loading profile...</div>;
@@ -75,6 +83,7 @@ const Profile = () => {
       </div>
 
       {message && <div className={styles.success}>{message}</div>}
+      {error && <div className={styles.error}>{error}</div>}
 
       {editing && (
         <form className={styles.form} onSubmit={saveProfile}>

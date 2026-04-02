@@ -213,17 +213,35 @@ exports.updateProfile = async (req, res) => {
       return res.status(403).json({ message: 'Not authorized' });
     }
 
-    const updates = { name, bio, avatar };
-    if (isPrivate !== undefined) updates.isPrivate = isPrivate;
-    if (username) {
-       const existing = await User.findOne({ username, _id: { $ne: idToUpdate } });
-       if (existing) return res.status(400).json({ message: 'Username is already taken' });
-       updates.username = username;
+    const user = await User.findById(idToUpdate);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
     }
 
-    const user = await User.findByIdAndUpdate(idToUpdate, updates, { new: true, runValidators: true }).select('-password');
-    res.json({ message: 'Profile updated', user });
+    if (name !== undefined) user.name = String(name).trim();
+    if (bio !== undefined) user.bio = String(bio).trim();
+    if (avatar !== undefined) user.avatar = String(avatar).trim();
+    if (isPrivate !== undefined) user.isPrivate = Boolean(isPrivate);
+
+    if (username !== undefined) {
+      const normalizedUsername = String(username || '').trim().toLowerCase();
+      if (normalizedUsername) {
+        const existing = await User.findOne({ username: normalizedUsername, _id: { $ne: idToUpdate } });
+        if (existing) return res.status(409).json({ message: 'Username is already taken' });
+        user.username = normalizedUsername;
+      } else {
+        user.username = null;
+      }
+    }
+
+    await user.save();
+
+    const savedUser = await User.findById(idToUpdate).select('-password');
+    res.json({ message: 'Profile updated', user: savedUser });
   } catch (error) {
+    if (error?.code === 11000 && error?.keyPattern?.username) {
+      return res.status(409).json({ message: 'Username is already taken' });
+    }
     res.status(500).json({ message: error.message });
   }
 };

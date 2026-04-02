@@ -1,13 +1,39 @@
 const nodemailer = require('nodemailer');
 
+let cachedTransporter = null;
+const APP_CLIENT_URL = 'https://game-verse.tech';
+
+const resolveMailFrom = () => {
+  const explicitFrom = process.env.EMAIL_FROM || process.env.CONTACT_EMAIL || process.env.SMTP_FROM;
+  if (explicitFrom) return explicitFrom;
+
+  // Resend allows onboarding@resend.dev for unverified/testing senders.
+  if ((process.env.SMTP_HOST || '').includes('resend.com')) {
+    return 'GameVerse <onboarding@resend.dev>';
+  }
+
+  return process.env.EMAIL_FROM
+    || process.env.CONTACT_EMAIL
+    || process.env.SMTP_FROM
+    || 'GameVerse <noreply@game-verse.tech>';
+};
+
+const resolveClientUrl = () => {
+  return APP_CLIENT_URL;
+};
+
 // For development/testing: use ethereal email (fake SMTP service)
 const getTransporter = async () => {
+  if (cachedTransporter) {
+    return cachedTransporter;
+  }
+
   const smtpHost = process.env.SMTP_HOST;
   const smtpPort = Number(process.env.SMTP_PORT || 587);
-  const smtpUser = process.env.SMTP_USER;
-  const smtpPass = process.env.SMTP_PASS;
+  const smtpUser = process.env.SMTP_USER || 'resend';
+  const smtpPass = process.env.SMTP_PASS || process.env.RESEND_API_KEY || process.env.EMAIL_PASSWORD;
 
-  if (smtpHost && smtpUser && smtpPass) {
+  if (smtpHost && smtpPass) {
     console.log(`[EMAIL] Initializing SMTP transporter: host=${smtpHost}, port=${smtpPort}, user=${smtpUser.substring(0, 5)}***, secure=${smtpPort === 465}`);
     const transporter = nodemailer.createTransport({
       host: smtpHost,
@@ -18,24 +44,23 @@ const getTransporter = async () => {
         pass: smtpPass,
       },
     });
-    
-    // Test connection
-    transporter.verify((error, success) => {
-      if (error) {
-        console.error('[EMAIL] SMTP verification failed:', error);
-      } else {
-        console.log('[EMAIL] SMTP connection verified successfully');
-      }
-    });
-    
-    return transporter;
+
+    try {
+      await transporter.verify();
+      console.log('[EMAIL] SMTP connection verified successfully');
+      cachedTransporter = transporter;
+      return cachedTransporter;
+    } catch (verifyError) {
+      console.error('[EMAIL] SMTP verification failed:', verifyError.message);
+      throw new Error('Email transport configuration is invalid. Verify SMTP credentials.');
+    }
   }
 
-  if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test' || !process.env.EMAIL_USER) {
+  if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
     // Create test account
     try {
       const testAccount = await nodemailer.createTestAccount();
-      return nodemailer.createTransport({
+      cachedTransporter = nodemailer.createTransport({
         host: 'smtp.ethereal.email',
         port: 587,
         secure: false,
@@ -44,33 +69,30 @@ const getTransporter = async () => {
           pass: testAccount.pass,
         },
       });
+      return cachedTransporter;
     } catch (err) {
       console.log('Using ethereal email for tests');
       // Fallback for test environments
-      return nodemailer.createTransport({
+      cachedTransporter = nodemailer.createTransport({
         host: 'localhost',
         port: 1025, // MailHog default port
         secure: false,
       });
+      return cachedTransporter;
     }
   }
-  // Production: use Gmail or configured email service
-  return nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASSWORD,
-    },
-  });
+
+  throw new Error('Missing SMTP configuration in production. Set SMTP_HOST and SMTP_PASS (or RESEND_API_KEY).');
 };
 
 // Send welcome email
 exports.sendWelcomeEmail = async (email, name) => {
   try {
     const emailTransporter = await getTransporter();
+    const clientUrl = resolveClientUrl();
     
     const mailOptions = {
-      from: process.env.CONTACT_EMAIL || process.env.EMAIL_USER || 'noreply@gameverse.com',
+      from: resolveMailFrom(),
       to: email,
       subject: 'Welcome to GameVerse!',
       html: `
@@ -83,7 +105,7 @@ exports.sendWelcomeEmail = async (email, name) => {
           <li>Discover new games and genres</li>
           <li>Connect with other gaming enthusiasts</li>
         </ul>
-        <p>Get started by visiting your <a href="${process.env.CLIENT_URL}/dashboard">dashboard</a>.</p>
+        <p>Get started by visiting your <a href="${clientUrl}/dashboard">dashboard</a>.</p>
         <p>Happy gaming!</p>
         <hr>
         <p><small>GameVerse Team</small></p>
@@ -105,9 +127,10 @@ exports.sendWelcomeEmail = async (email, name) => {
 exports.sendPasswordChangedEmail = async (email, name) => {
   try {
     const emailTransporter = await getTransporter();
+    const clientUrl = resolveClientUrl();
     
     const mailOptions = {
-      from: process.env.CONTACT_EMAIL || process.env.EMAIL_USER || 'noreply@gameverse.com',
+      from: resolveMailFrom(),
       to: email,
       subject: 'Your Password Has Been Changed',
       html: `
@@ -115,7 +138,7 @@ exports.sendPasswordChangedEmail = async (email, name) => {
         <p>Hi ${name},</p>
         <p>Your GameVerse password was changed successfully.</p>
         <p>If you did not make this change, please contact us immediately.</p>
-        <p><a href="${process.env.CLIENT_URL}/profile">Reset your password</a></p>
+        <p><a href="${clientUrl}/profile">Reset your password</a></p>
         <hr>
         <p><small>GameVerse Security Team</small></p>
       `,
@@ -136,10 +159,11 @@ exports.sendPasswordResetEmail = async (email, resetToken, name) => {
   try {
     console.log(`[EMAIL] Attempting to send password reset email to: ${email}`);
     const emailTransporter = await getTransporter();
-    const resetLink = `${process.env.CLIENT_URL}/reset-password?token=${resetToken}`;
+    const clientUrl = resolveClientUrl();
+    const resetLink = `${clientUrl}/reset-password?token=${resetToken}`;
     
     const mailOptions = {
-      from: process.env.CONTACT_EMAIL || process.env.EMAIL_USER || 'noreply@gameverse.com',
+      from: resolveMailFrom(),
       to: email,
       subject: 'Password Reset Request',
       html: `
@@ -186,16 +210,17 @@ exports.sendPasswordResetEmail = async (email, resetToken, name) => {
 exports.sendGameCreatedEmail = async (email, name, gameTitle) => {
   try {
     const emailTransporter = await getTransporter();
+    const clientUrl = resolveClientUrl();
     
     const mailOptions = {
-      from: process.env.CONTACT_EMAIL || process.env.EMAIL_USER || 'noreply@gameverse.com',
+      from: resolveMailFrom(),
       to: email,
       subject: `Your Game "${gameTitle}" Has Been Created!`,
       html: `
         <h2>Game Added Successfully!</h2>
         <p>Hi ${name},</p>
         <p>Your new game <strong>${gameTitle}</strong> has been added to your collection.</p>
-        <p><a href="${process.env.CLIENT_URL}/games">View your games</a></p>
+        <p><a href="${clientUrl}/games">View your games</a></p>
         <hr>
         <p><small>GameVerse Team</small></p>
       `,
@@ -215,9 +240,10 @@ exports.sendGameCreatedEmail = async (email, name, gameTitle) => {
 exports.sendGamePurchaseEmail = async (email, name, gameTitle, price) => {
   try {
     const emailTransporter = await getTransporter();
+    const clientUrl = resolveClientUrl();
     
     const mailOptions = {
-      from: process.env.CONTACT_EMAIL || process.env.EMAIL_USER || 'noreply@gameverse.com',
+      from: resolveMailFrom(),
       to: email,
       subject: 'Game Purchase Confirmation - GameVerse',
       html: `
@@ -230,7 +256,7 @@ exports.sendGamePurchaseEmail = async (email, name, gameTitle, price) => {
           <p><strong>Status:</strong> Permanently Owned</p>
         </div>
         
-        <p>You can now access this game anytime from your <a href="${process.env.CLIENT_URL}/dashboard">dashboard</a>.</p>
+        <p>You can now access this game anytime from your <a href="${clientUrl}/dashboard">dashboard</a>.</p>
         <p>Enjoy your new game!</p>
         <hr>
         <p><small>GameVerse Team</small></p>
@@ -251,9 +277,10 @@ exports.sendGamePurchaseEmail = async (email, name, gameTitle, price) => {
 exports.sendGameRentalEmail = async (email, name, gameTitle, price, expiryDate) => {
   try {
     const emailTransporter = await getTransporter();
+    const clientUrl = resolveClientUrl();
     
     const mailOptions = {
-      from: process.env.CONTACT_EMAIL || process.env.EMAIL_USER || 'noreply@gameverse.com',
+      from: resolveMailFrom(),
       to: email,
       subject: 'Game Rental Confirmation - GameVerse',
       html: `
@@ -267,7 +294,7 @@ exports.sendGameRentalEmail = async (email, name, gameTitle, price, expiryDate) 
           <p><strong>Duration:</strong> 7 Days</p>
         </div>
         
-        <p>You can access this game from your <a href="${process.env.CLIENT_URL}/dashboard">dashboard</a>.</p>
+        <p>You can access this game from your <a href="${clientUrl}/dashboard">dashboard</a>.</p>
         <p>After the rental period expires, you will no longer have access to this game.</p>
         <hr>
         <p><small>GameVerse Team</small></p>
