@@ -10,19 +10,28 @@
     <link rel="apple-touch-icon" sizes="180x180" href="%PUBLIC_URL%/apple-touch-icon.png" />
     <link rel="preload" as="image" href="%PUBLIC_URL%/images/fighting.webp" type="image/webp" fetchpriority="high" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="theme-color" content="#1a1f2e" />
     <!-- SEO and Open Graph -->
     <meta name="description" content="Explore GameVerse for games, gaming news, and compatibility tools with a public crawl path from the homepage." />
+    <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" />
+    <meta name="googlebot" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" />
     <meta name="keywords" content="gaming, games, esports, game discovery, gaming news, genres" />
     <meta property="og:title" content="GameVerse" />
     <meta property="og:site_name" content="GameVerse" />
     <meta property="og:description" content="Explore GameVerse for games, gaming news, and compatibility tools." />
     <meta property="og:image" content="%PUBLIC_URL%/images/fighting.webp" />
+    <meta property="og:url" content="https://game-verse.tech/" />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="GameVerse" />
     <meta name="twitter:description" content="Explore GameVerse for games, gaming news, and compatibility tools." />
+    <meta name="twitter:url" content="https://game-verse.tech/" />
     <meta name="twitter:site" content="@gameverse" />
+    <link rel="canonical" href="https://game-verse.tech/" />
     <!--
       manifest.json provides metadata used when your web app is installed on a
       user's mobile device or desktop. See https://developers.google.com/web/fundamentals/web-app-manifest/
@@ -37,7 +46,12 @@
       work correctly both with client-side routing and a non-root public URL.
       Learn how to configure a non-root public URL by running `npm run build`.
     -->
-    <title>GameVerse</title>
+    <title>GameVerse | Discover Games, News and Compatibility</title>
+    <script>
+      if (!document.title || !document.title.trim()) {
+        document.title = 'GameVerse | Discover Games, News and Compatibility';
+      }
+    </script>
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>

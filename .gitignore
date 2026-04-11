@@ -13,6 +13,16 @@ backend.env
 
 # testing
 /coverage
+/server/coverage
+.nyc_output/
+test-results/
+playwright-report/
+cypress/videos/
+cypress/screenshots/
+junit.xml
+*.lcov
+coverage-final.json
+clover.xml
 
 # production
 /build

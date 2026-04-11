@@ -8,7 +8,7 @@
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^13.5.0",
     "@vercel/analytics": "^1.6.1",
-    "axios": "^1.13.6",
+    "axios": "^1.15.0",
     "firebase": "^12.6.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
@@ -21,6 +21,9 @@
   "scripts": {
     "start": "cross-env NODE_OPTIONS=--no-deprecation react-scripts start",
     "build": "react-scripts build",
+    "seo:validate": "node scripts/seo-validate.js",
+    "build:verify": "npm run build && npm run seo:validate",
+    "test:ci": "react-scripts test --watchAll=false --passWithNoTests",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
