@@ -14,6 +14,7 @@ const userSchema = new mongoose.Schema(
       type: String,
       lowercase: true,
       trim: true,
+      unique: true,
       sparse: true,
       default: null,
     },
@@ -104,9 +105,52 @@ const userSchema = new mongoose.Schema(
       type: [String],
       default: [],
     },
+    // Superseded by hardwareProfiles below (multi-profile support) - kept
+    // only so migrateHardwareProfiles.js has something to read from on
+    // existing accounts. Never written to by new code.
     hardwareProfile: {
       type: mongoose.Schema.Types.Mixed,
       default: {},
+    },
+    hardwareProfiles: {
+      type: [
+        {
+          name: { type: String, required: true },
+          cpuId: { type: mongoose.Schema.Types.ObjectId, ref: 'HardwareLayer' },
+          gpuId: { type: mongoose.Schema.Types.ObjectId, ref: 'HardwareLayer' },
+          ramGb: { type: Number, default: 16 },
+          platform: { type: String, default: 'pc' },
+          isDefault: { type: Boolean, default: false },
+          createdAt: { type: Date, default: Date.now },
+        },
+      ],
+      default: [],
+    },
+    subscriptionTier: {
+      type: String,
+      enum: ['free', 'premium'],
+      default: 'free',
+    },
+    lemonSqueezyCustomerId: {
+      type: String,
+      default: null,
+    },
+    lemonSqueezySubscriptionId: {
+      type: String,
+      default: null,
+    },
+    subscriptionRenewsAt: {
+      type: Date,
+      default: null,
+    },
+    profileBanner: {
+      type: String,
+      default: null,
+    },
+    avatarFrame: {
+      type: String,
+      enum: [null, 'gold', 'neon', 'pixel'],
+      default: null,
     },
     resetToken: {
       type: String,
@@ -115,6 +159,20 @@ const userSchema = new mongoose.Schema(
     resetTokenExpiry: {
       type: Date,
       default: null,
+    },
+    newsletterOptIn: {
+      type: Boolean,
+      default: false,
+    },
+    newsletterUnsubscribeToken: {
+      type: String,
+      default: null,
+    },
+    customSlug: {
+      type: String,
+      default: null,
+      unique: true,
+      sparse: true,
     },
   },
   {

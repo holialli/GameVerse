@@ -118,3 +118,84 @@
     grid-template-columns: 1fr;
   }
 }
+
+.profilesRow {
+  display: flex;
+  align-items: flex-end;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.profilesRow label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.85rem;
+}
+
+.profilesRow button {
+  padding: 0.5rem 0.9rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-elev);
+  color: var(--primary);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.profilesRow button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.gameSpecific {
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--primary) 10%, transparent);
+  border: 1px solid var(--border);
+}
+
+.tipLinks {
+  margin-top: 1rem;
+}
+
+.tipLinksRow {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.tipLinksRow a {
+  padding: 0.4rem 0.8rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-elev);
+  color: var(--primary);
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-decoration: none;
+}
+
+.tipLinksRow a:hover {
+  border-color: var(--primary);
+}
+
+.tierPromo {
+  margin-top: 2rem;
+  text-align: center;
+  color: var(--muted);
+}
+
+.tierPromoRow {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  margin-top: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.tierPromoRow a {
+  color: var(--primary);
+  font-weight: 600;
+}

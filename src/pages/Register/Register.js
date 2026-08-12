@@ -161,6 +161,11 @@ const Register = () => {
             )}
           </div>
 
+          <p className={styles.terms}>
+            By registering, you agree to our <Link to="/terms">Terms of Service</Link> and{' '}
+            <Link to="/privacy">Privacy Policy</Link>.
+          </p>
+
           <button type="submit" disabled={isLoading} className={styles.submitBtn}>
             {isLoading ? 'Registering...' : 'Register'}
           </button>

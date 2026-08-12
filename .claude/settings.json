@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -e ' *)",
+      "WebSearch",
+      "Bash(cd \"C:/Users/ali13/.claude/plans\" && rm -f humble-meandering-fiddle.md && ls -la | head -10)"
+    ],
+    "additionalDirectories": [
+      "C:\\Users\\ali13\\.claude\\plans"
+    ]
+  }
+}

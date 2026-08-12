@@ -301,6 +301,109 @@ exports.sendGameRentalEmail = async (email, name, gameTitle, price, expiryDate) 
   }
 };
 
+// Sends a freshly-generated developer API key. Called once at signup - the
+// raw key is also returned directly in the signup HTTP response, so delivery
+// isn't solely dependent on email arriving.
+exports.sendApiKeyEmail = async (email, name, rawKey) => {
+  try {
+    const emailTransporter = await getTransporter();
+    const clientUrl = resolveClientUrl();
+
+    const mailOptions = {
+      from: resolveMailFrom(),
+      to: email,
+      subject: 'Your GameVerse API key',
+      html: `
+        <h2>Hi ${name},</h2>
+        <p>Here is your GameVerse Compatibility API key:</p>
+        <div style="background: #f0f0f0; padding: 15px; border-radius: 5px; font-family: monospace; word-break: break-all;">
+          ${rawKey}
+        </div>
+        <p><strong>Store this somewhere safe - it will not be shown again.</strong></p>
+        <p>See the <a href="${clientUrl}/developers/docs">API docs</a> to get started.</p>
+        <hr>
+        <p><small>GameVerse Team</small></p>
+      `,
+    };
+
+    const info = await emailTransporter.sendMail(mailOptions);
+    console.log('API key email sent:', info.messageId);
+    return info;
+  } catch (error) {
+    if (process.env.NODE_ENV !== 'test') {
+      console.error('Error sending API key email:', error);
+    }
+  }
+};
+
+exports.sendSubscriptionEmail = async (email, name, statusLabel) => {
+  try {
+    const emailTransporter = await getTransporter();
+    const clientUrl = resolveClientUrl();
+
+    const mailOptions = {
+      from: resolveMailFrom(),
+      to: email,
+      subject: `GameVerse Premium: ${statusLabel}`,
+      html: `
+        <h2>Hi ${name},</h2>
+        <p>Your GameVerse Premium subscription status: <strong>${statusLabel}</strong>.</p>
+        <p>Manage your subscription any time from your <a href="${clientUrl}/profile">profile</a>.</p>
+        <hr>
+        <p><small>GameVerse Team</small></p>
+      `,
+    };
+
+    const info = await emailTransporter.sendMail(mailOptions);
+    console.log('Subscription email sent:', info.messageId);
+    return info;
+  } catch (error) {
+    if (process.env.NODE_ENV !== 'test') {
+      console.error('Error sending subscription email:', error);
+    }
+  }
+};
+
+// Weekly curated deals digest - only ever called with a non-empty `entries`
+// list (the sending script skips users with nothing worth reporting), so no
+// empty-state copy is needed here.
+exports.sendNewsletterEmail = async (email, name, entries, unsubscribeToken) => {
+  try {
+    const emailTransporter = await getTransporter();
+    const clientUrl = resolveClientUrl();
+    const unsubscribeLink = `${clientUrl}/newsletter/unsubscribe?token=${unsubscribeToken}`;
+
+    const rows = entries.map(({ title, bestDeal }) => `
+      <li>
+        <strong>${title}</strong> - $${bestDeal.price.toFixed(2)}
+        <span style="color:#888;">(was $${bestDeal.retailPrice.toFixed(2)}) at ${bestDeal.store}</span>
+        - <a href="${bestDeal.dealUrl}">Get this deal</a>
+      </li>
+    `).join('');
+
+    const mailOptions = {
+      from: resolveMailFrom(),
+      to: email,
+      subject: 'This week\'s price drops on your GameVerse list',
+      html: `
+        <h2>Hi ${name},</h2>
+        <p>Here's what dropped in price this week on games from your library and watchlist:</p>
+        <ul>${rows}</ul>
+        <hr>
+        <p><small>GameVerse Team &middot; <a href="${unsubscribeLink}">Unsubscribe from this newsletter</a></small></p>
+      `,
+    };
+
+    const info = await emailTransporter.sendMail(mailOptions);
+    console.log('Newsletter email sent:', info.messageId);
+    return info;
+  } catch (error) {
+    if (process.env.NODE_ENV !== 'test') {
+      console.error('Error sending newsletter email:', error);
+    }
+  }
+};
+
 module.exports = {
   sendWelcomeEmail: exports.sendWelcomeEmail,
   sendPasswordChangedEmail: exports.sendPasswordChangedEmail,
@@ -308,4 +411,7 @@ module.exports = {
   sendGameCreatedEmail: exports.sendGameCreatedEmail,
   sendGamePurchaseEmail: exports.sendGamePurchaseEmail,
   sendGameRentalEmail: exports.sendGameRentalEmail,
+  sendApiKeyEmail: exports.sendApiKeyEmail,
+  sendSubscriptionEmail: exports.sendSubscriptionEmail,
+  sendNewsletterEmail: exports.sendNewsletterEmail,
 };

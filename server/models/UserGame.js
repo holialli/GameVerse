@@ -8,7 +8,7 @@ const userGameSchema = new mongoose.Schema({
     index: true
   },
   rawgId: { type: Number, required: true },
-  rawgSlug: { type: String },
+  rawgSlug: { type: String, index: true },
   title: { type: String, required: true },
   coverUrl: { type: String },
   status: {

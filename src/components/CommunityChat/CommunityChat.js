@@ -1,10 +1,12 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { io } from 'socket.io-client';
-import styles from './AskAI.module.css';
+import styles from './CommunityChat.module.css';
 
 const SOCKET_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
-const AskAI = () => {
+// Real-time Socket.IO lobby (server/socket.js) - moderated global chat room,
+// not an AI feature. See AskAIWidget for the actual Gemini-backed widget.
+const CommunityChat = () => {
   const [collapsed, setCollapsed] = useState(true);
   const [connected, setConnected] = useState(false);
   const [messages, setMessages] = useState([]);
@@ -155,4 +157,4 @@ const AskAI = () => {
   );
 };
 
-export default AskAI;
+export default CommunityChat;

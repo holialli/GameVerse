@@ -1,8 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import { useAuth } from '../../contexts/AuthContext';
 import { userAPI } from '../../services/api';
 import axiosInstance from '../../lib/axios';
+import EmptyState from '../../components/EmptyState/EmptyState';
 import styles from './Dashboard.module.css';
 
 const Dashboard = () => {
@@ -35,8 +37,9 @@ const Dashboard = () => {
           ? { ...item, status: nextStatus }
           : item
       )));
+      toast.success(`${game.title} moved to ${nextStatus}.`);
     } catch (err) {
-      setError(err?.message || 'Failed to update game status');
+      toast.error(err?.message || 'Failed to update game status');
     } finally {
       setBusyId('');
     }
@@ -47,8 +50,9 @@ const Dashboard = () => {
       setBusyId(`${game.rawgId}-remove`);
       await userAPI.removeLibraryGame(game.rawgId);
       setLibrary((prev) => prev.filter((item) => Number(item.rawgId) !== Number(game.rawgId)));
+      toast.success(`${game.title} removed.`);
     } catch (err) {
-      setError(err?.message || 'Failed to remove game from library');
+      toast.error(err?.message || 'Failed to remove game from library');
     } finally {
       setBusyId('');
     }
@@ -189,7 +193,13 @@ const Dashboard = () => {
         <article className={styles.panel}>
           <h2>Library</h2>
           {libraryGames.length === 0 ? (
-            <p className={styles.empty}>No games in library yet. Add games from Game Radar.</p>
+            <EmptyState
+              icon="🎮"
+              title="Your library is empty"
+              message="Add games from Game Radar to start tracking playtime and progress."
+              actionTo="/games"
+              actionLabel="Browse Game Radar"
+            />
           ) : (
             <ul className={styles.list}>
               {libraryGames.slice(0, 8).map((g) => (
@@ -227,7 +237,13 @@ const Dashboard = () => {
         <article className={styles.panel}>
           <h2>Watchlist</h2>
           {watchlistGames.length === 0 ? (
-            <p className={styles.empty}>Your watchlist is empty.</p>
+            <EmptyState
+              icon="👀"
+              title="Nothing on your watchlist"
+              message="Found something interesting? Add it to your watchlist to keep track of it."
+              actionTo="/games"
+              actionLabel="Browse Game Radar"
+            />
           ) : (
             <ul className={styles.list}>
               {watchlistGames.slice(0, 8).map((g) => (
@@ -267,7 +283,7 @@ const Dashboard = () => {
         </article>
 
         <article className={styles.panel}>
-          <h2>Community Top Players</h2>
+          <h2>Community Top Players <Link to="/leaderboard" className={styles.panelLink}>View full leaderboard</Link></h2>
           {leaderboard.length === 0 ? (
             <p className={styles.empty}>Leaderboard data will appear as players track sessions.</p>
           ) : (

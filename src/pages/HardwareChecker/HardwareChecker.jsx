@@ -1,9 +1,11 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import axiosInstance from '../../lib/axios';
 import styles from './HardwareChecker.module.css';
 import { useAuth } from '../../contexts/AuthContext';
 import SEO from '../../components/SEO/SEO';
+import AffiliateDisclosure from '../../components/AffiliateDisclosure/AffiliateDisclosure';
 
 const RAM_OPTIONS = [4, 8, 12, 16, 24, 32, 48, 64, 96, 128];
 
@@ -24,6 +26,20 @@ const HardwareChecker = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [isChecking, setIsChecking] = useState(false);
+  const [profiles, setProfiles] = useState([]);
+  const [profileLimit, setProfileLimit] = useState(1);
+  const [savingProfile, setSavingProfile] = useState(false);
+
+  const loadProfiles = useCallback(async () => {
+    if (!isAuthenticated) return;
+    try {
+      const res = await axiosInstance.get('/hardware/profiles');
+      setProfiles(Array.isArray(res.data.profiles) ? res.data.profiles : []);
+      setProfileLimit(res.data.limit || 1);
+    } catch (err) {
+      // Non-blocking.
+    }
+  }, [isAuthenticated]);
 
   useEffect(() => {
     const load = async () => {
@@ -43,6 +59,7 @@ const HardwareChecker = () => {
 
         setLibraryGames(tracked);
         setHardware(hw);
+        await loadProfiles();
 
         const firstCpu = hw.find((h) => h.type === 'cpu');
         const firstGpu = hw.find((h) => h.type === 'gpu');
@@ -62,7 +79,7 @@ const HardwareChecker = () => {
     };
 
     load();
-  }, [isAuthenticated]);
+  }, [isAuthenticated, loadProfiles]);
 
   const cpus = useMemo(() => hardware.filter((h) => h.type === 'cpu'), [hardware]);
   const gpus = useMemo(() => hardware.filter((h) => h.type === 'gpu'), [hardware]);
@@ -95,6 +112,40 @@ const HardwareChecker = () => {
     }
   };
 
+  const saveProfile = async () => {
+    const name = window.prompt('Name this hardware profile (e.g. "Gaming PC"):', 'My PC');
+    if (!name) return;
+
+    setSavingProfile(true);
+    try {
+      await axiosInstance.post('/hardware/profiles', {
+        name,
+        cpuId: form.cpuId,
+        gpuId: form.gpuId,
+        ramGb: form.ramGb,
+        platform: form.platform,
+      });
+      toast.success('Hardware profile saved.');
+      await loadProfiles();
+    } catch (err) {
+      toast.error(err?.response?.data?.error || 'Failed to save profile');
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
+  const loadProfileIntoForm = (profileId) => {
+    const profile = profiles.find((p) => p._id === profileId);
+    if (!profile) return;
+    setForm((prev) => ({
+      ...prev,
+      cpuId: profile.cpuId || prev.cpuId,
+      gpuId: profile.gpuId || prev.gpuId,
+      ramGb: profile.ramGb || prev.ramGb,
+      platform: profile.platform || prev.platform,
+    }));
+  };
+
   if (isLoading) return <section className={styles.page}><p>Loading compatibility data...</p></section>;
 
   const resultTierClass = result?.tier === 'green'
@@ -123,6 +174,30 @@ const HardwareChecker = () => {
       </header>
 
       {error && <div className={styles.error}>{error}</div>}
+
+      {isAuthenticated && (
+        <div className={styles.profilesRow}>
+          {profiles.length > 0 && (
+            <label>
+              Saved Profiles
+              <select onChange={(e) => loadProfileIntoForm(e.target.value)} defaultValue="">
+                <option value="" disabled>Load a saved profile...</option>
+                {profiles.map((p) => (
+                  <option key={p._id} value={p._id}>{p.name}</option>
+                ))}
+              </select>
+            </label>
+          )}
+          <button
+            type="button"
+            onClick={saveProfile}
+            disabled={savingProfile || !form.cpuId || !form.gpuId || profiles.length >= profileLimit}
+            title={profiles.length >= profileLimit ? `Your plan allows ${profileLimit} saved profile(s) - upgrade to Premium for more.` : ''}
+          >
+            {savingProfile ? 'Saving...' : `Save Current as Profile (${profiles.length}/${profileLimit})`}
+          </button>
+        </div>
+      )}
 
       <form className={styles.form} onSubmit={checkCompatibility}>
         <label>
@@ -206,12 +281,52 @@ const HardwareChecker = () => {
           <p><strong>Target Platform:</strong> {result.details?.platform?.label || 'PC (Desktop)'}</p>
           <p><strong>Estimated FPS:</strong> Low {result.estimatedFps?.low} | Medium {result.estimatedFps?.medium} | High {result.estimatedFps?.high}</p>
 
+          {result.gameSpecific?.available && (
+            <p className={styles.gameSpecific}>
+              <strong>Against this game's actual requirements:</strong>{' '}
+              {result.gameSpecific.meetsRecommended
+                ? 'Meets recommended specs.'
+                : result.gameSpecific.meetsMinimum
+                  ? 'Meets minimum specs, below recommended.'
+                  : 'Below published minimum specs.'}
+              {result.gameSpecific.matchConfidence === 'low' && ' (low-confidence match)'}
+            </p>
+          )}
+
           <h3>Optimization Tips</h3>
           <ul>
             {(result.tips || []).map((tip, idx) => <li key={idx}>{tip}</li>)}
           </ul>
+
+          {result.tipLinks?.length > 0 && (
+            <div className={styles.tipLinks}>
+              <h3>Consider Upgrading</h3>
+              <div className={styles.tipLinksRow}>
+                {result.tipLinks.map((link, idx) => (
+                  <a
+                    key={`${link.store}-${idx}`}
+                    href={link.url}
+                    target="_blank"
+                    rel="noopener noreferrer sponsored"
+                  >
+                    {link.label}
+                  </a>
+                ))}
+              </div>
+              <AffiliateDisclosure />
+            </div>
+          )}
         </article>
       )}
+
+      <div className={styles.tierPromo}>
+        <p>Not sure which tier your PC falls into? Browse curated picks:</p>
+        <div className={styles.tierPromoRow}>
+          <Link to="/best-games/budget">Budget PC</Link>
+          <Link to="/best-games/mid-range">Mid-Range PC</Link>
+          <Link to="/best-games/high-end">High-End PC</Link>
+        </div>
+      </div>
     </section>
   );
 };

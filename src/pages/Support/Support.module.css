@@ -1,0 +1,27 @@
+.page {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 2rem 1rem 3rem;
+  text-align: center;
+  color: var(--text);
+}
+
+.page p {
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.kofiBtn {
+  display: inline-block;
+  margin: 1.2rem 0;
+  padding: 12px 28px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--primary), var(--accent));
+  color: #04131b;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.note {
+  font-size: 0.85rem;
+}

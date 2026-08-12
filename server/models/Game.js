@@ -63,6 +63,19 @@ const gameSchema = new mongoose.Schema(
       ref: 'User',
       default: null, // Admin games have no specific creator
     },
+    isSponsored: {
+      type: Boolean,
+      default: false,
+    },
+    sponsoredUntil: {
+      type: Date,
+      default: null,
+    },
+    sponsoredUrl: {
+      type: String,
+      default: null,
+      trim: true,
+    },
   },
   {
     timestamps: true,

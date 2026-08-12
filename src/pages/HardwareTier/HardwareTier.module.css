@@ -1,0 +1,130 @@
+.page {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 24px 16px 48px;
+  color: var(--text);
+}
+
+.status {
+  max-width: 600px;
+  margin: 80px auto;
+  padding: 24px;
+  text-align: center;
+  color: var(--muted);
+}
+
+.errorText {
+  color: var(--danger);
+  margin-bottom: 12px;
+}
+
+.retryButton {
+  padding: 10px 18px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(90deg, var(--primary), var(--accent));
+  color: #031116;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.header h1 {
+  margin: 0 0 8px;
+}
+
+.header p {
+  color: var(--muted);
+  margin: 4px 0;
+}
+
+.specBlurb {
+  font-size: 0.9rem;
+  font-style: italic;
+}
+
+.checkerLink {
+  display: inline-block;
+  margin-top: 12px;
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.card {
+  display: block;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--card);
+  overflow: hidden;
+  text-decoration: none;
+  color: var(--text);
+}
+
+.card:hover {
+  border-color: var(--primary);
+}
+
+.cover {
+  width: 100%;
+  aspect-ratio: 3/2;
+  object-fit: cover;
+  display: block;
+}
+
+.noCover {
+  width: 100%;
+  aspect-ratio: 3/2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-elev);
+  color: var(--muted);
+}
+
+.cardInfo {
+  padding: 10px 12px;
+}
+
+.cardInfo h3 {
+  margin: 0 0 4px;
+  font-size: 1rem;
+}
+
+.cardInfo p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.empty {
+  margin-top: 24px;
+  padding: 16px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  color: var(--muted);
+}
+
+.tierNav {
+  margin-top: 32px;
+  text-align: center;
+  color: var(--muted);
+}
+
+.tierNavRow {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  margin-top: 8px;
+  text-transform: capitalize;
+}
+
+.tierNavRow a {
+  color: var(--primary);
+  font-weight: 600;
+}

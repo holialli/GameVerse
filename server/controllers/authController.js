@@ -3,6 +3,7 @@ const crypto = require('crypto');
 const User = require('../models/User');
 const { sendWelcomeEmail, sendPasswordResetEmail } = require('../services/emailService');
 const redis = require('../utils/redisClient');
+const notify = require('../utils/notify');
 
 const isBasicStrongPassword = (value) => {
   const pwd = String(value || '');
@@ -43,13 +44,18 @@ const setTokenCookies = (res, accessToken, refreshToken) => {
   });
 };
 
+// Reverse lookup: the opaque refresh token itself is the Redis key, mapping
+// to the userId it belongs to. This lets `refreshToken` resolve the user
+// from the cookie alone, without needing a (necessarily expired) access
+// token to populate req.user first.
 const storeRefreshTokenIfAvailable = async (userId, refreshToken) => {
   if (!redis) {
     return;
   }
 
   try {
-    await redis.set(`refresh_token:${userId}:${refreshToken}`, 'valid', 'EX', 7 * 24 * 60 * 60);
+    await redis.set(`refresh_token:${refreshToken}`, String(userId), 'EX', 7 * 24 * 60 * 60);
+    await redis.sadd(`user_refresh_tokens:${userId}`, refreshToken);
   } catch (err) {
     // Redis is optional for login/register. Do not block auth if cache is unavailable.
     console.error('[AUTH] Redis token store failed:', err.message);
@@ -86,6 +92,13 @@ exports.register = async (req, res) => {
 
     // Send welcome email (async, don't wait)
     sendWelcomeEmail(email, name).catch(err => console.error('Email error:', err));
+    notify({
+      userId: user._id,
+      type: 'welcome',
+      title: 'Welcome to GameVerse!',
+      message: 'Your account is ready. Start tracking games and check hardware compatibility.',
+      link: '/games',
+    });
 
     const { accessToken, refreshToken } = generateTokens(user._id, user.role);
     
@@ -162,51 +175,52 @@ exports.login = async (req, res) => {
 exports.refreshToken = async (req, res) => {
   try {
     const oldRefreshToken = req.cookies.refreshToken;
-    const userId = req.user?.id || req.body.userId; // Based on your auth middleware setup
 
-    if (!oldRefreshToken || !userId) {
-      return res.status(401).json({ message: 'No valid rotation context' });
+    if (!oldRefreshToken) {
+      return res.status(401).json({ message: 'No refresh token provided' });
     }
 
     if (!redis) {
       return res.status(503).json({ message: 'Token refresh unavailable. Please login again.' });
     }
 
-    let tokenStatus;
+    // The token itself resolves the user (reverse lookup) - no access token
+    // (and therefore no req.user) is required or expected here.
+    let userId;
     try {
-      // Check Redis for old token
-      tokenStatus = await redis.get(`refresh_token:${userId}:${oldRefreshToken}`);
+      userId = await redis.get(`refresh_token:${oldRefreshToken}`);
     } catch (err) {
       console.error('[AUTH] Redis token read failed:', err.message);
       return res.status(503).json({ message: 'Token refresh temporarily unavailable. Please login again.' });
     }
-    if (!tokenStatus) {
-      // Possible replay attack, invalidate ALL tokens for user
-      try {
-        const keys = await redis.keys(`refresh_token:${userId}:*`);
-        if (keys.length > 0) {
-          await redis.del(...keys);
-        }
-      } catch (err) {
-        console.error('[AUTH] Redis replay cleanup failed:', err.message);
-      }
+
+    if (!userId) {
+      // Unknown, expired, or already-rotated token. Since the key is gone we
+      // have no userId to key off of, so there is nothing to enumerate/revoke
+      // here - just reject.
       return res.status(403).json({ message: 'Invalid refresh token, please login' });
     }
 
-    // Delete old token
+    // Delete old token (rotation) and drop it from the user's session set
     try {
-      await redis.del(`refresh_token:${userId}:${oldRefreshToken}`);
+      await redis.del(`refresh_token:${oldRefreshToken}`);
+      await redis.srem(`user_refresh_tokens:${userId}`, oldRefreshToken);
     } catch (err) {
       console.error('[AUTH] Redis token delete failed:', err.message);
       return res.status(503).json({ message: 'Token refresh temporarily unavailable. Please login again.' });
     }
 
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(403).json({ message: 'Invalid refresh token, please login' });
+    }
+
     // Generate new tokens
-    const userRole = req.user?.role || 'user';
-    const { accessToken, refreshToken: newRefreshToken } = generateTokens(userId, userRole);
+    const { accessToken, refreshToken: newRefreshToken } = generateTokens(user._id, user.role);
 
     try {
-      await redis.set(`refresh_token:${userId}:${newRefreshToken}`, 'valid', 'EX', 7 * 24 * 60 * 60);
+      await redis.set(`refresh_token:${newRefreshToken}`, String(user._id), 'EX', 7 * 24 * 60 * 60);
+      await redis.sadd(`user_refresh_tokens:${user._id}`, newRefreshToken);
     } catch (err) {
       console.error('[AUTH] Redis token rotate store failed:', err.message);
       return res.status(503).json({ message: 'Token refresh temporarily unavailable. Please login again.' });

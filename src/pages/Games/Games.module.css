@@ -37,6 +37,44 @@
   padding: 0.5rem 0.55rem;
 }
 
+.sponsoredRow {
+  margin-top: 1rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 0.7rem;
+}
+
+.sponsoredCard {
+  display: flex;
+  gap: 0.7rem;
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--border));
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--accent) 6%, var(--bg-elev));
+  padding: 0.6rem;
+  text-decoration: none;
+  color: inherit;
+}
+
+.sponsoredImage {
+  width: 90px;
+  height: 90px;
+  border-radius: 8px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.sponsoredInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.sponsoredInfo h3 {
+  margin: 0;
+  color: var(--text);
+}
+
 .searchBar {
   margin-top: 1rem;
   display: grid;
@@ -98,6 +136,29 @@
 .adminInfo {
   margin-top: 1rem;
   color: var(--muted);
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 1.5rem;
+  color: var(--text);
+}
+
+.pagination button {
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg-elev);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.pagination button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .publicNote {

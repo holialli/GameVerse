@@ -90,6 +90,15 @@
   margin: 0;
   font-size: 1rem;
   color: var(--text);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.panelLink {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--primary);
 }
 
 .list {

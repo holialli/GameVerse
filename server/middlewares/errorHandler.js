@@ -3,7 +3,7 @@
  * Logs 5xx errors with request IDs for Cloudflare debugging
  *
  * Backend Usage (server.js):
- * const errorHandler = require('./middleware/errorHandler');
+ * const errorHandler = require('./middlewares/errorHandler');
  * app.use(errorHandler);
  *
  * Frontend Usage (React):

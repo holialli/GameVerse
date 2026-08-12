@@ -5,6 +5,6 @@ const authMiddleware = require('../middlewares/authMiddleware');
 const upload = require('../utils/multerConfig');
 
 // Upload image
-router.post('/', authMiddleware, upload.single('image'), uploadController.uploadImage);
+router.post('/', authMiddleware, upload.single('image'), upload.verifyUploadedImage, uploadController.uploadImage);
 
 module.exports = router;

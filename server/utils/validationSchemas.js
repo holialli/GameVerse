@@ -36,6 +36,26 @@ exports.createGameSchema = Joi.object({
   rentPrice: Joi.number().min(0.99).optional(),
 });
 
+exports.publicCompatibilitySchema = Joi.object({
+  rawgId: Joi.number().optional(),
+  cpu: Joi.string().required().max(200),
+  gpu: Joi.string().required().max(200),
+  ramGb: Joi.number().min(1).max(256).optional(),
+  platform: Joi.string().valid('pc', 'steamdeck', 'ps5', 'xboxseriesx', 'nintendoswitch').optional(),
+});
+
+exports.developerSignupSchema = Joi.object({
+  name: Joi.string().required().max(100),
+  contactEmail: Joi.string().email().required(),
+});
+
+exports.reviewSchema = Joi.object({
+  rating: Joi.number().min(1).max(5).required(),
+  text: Joi.string().max(1000).allow('').optional(),
+  rawgSlug: Joi.string().allow('').optional(),
+  gameTitle: Joi.string().allow('').optional(),
+});
+
 exports.updateGameSchema = Joi.object({
   title: Joi.string().max(100).optional().allow(''),
   description: Joi.string().max(1000).optional().allow(''),
@@ -47,4 +67,7 @@ exports.updateGameSchema = Joi.object({
   imageUrl: Joi.string().allow('').optional(),
   buyPrice: Joi.number().min(0.99).optional(),
   rentPrice: Joi.number().min(0.99).optional(),
+  isSponsored: Joi.boolean().optional(),
+  sponsoredUntil: Joi.date().allow(null).optional(),
+  sponsoredUrl: Joi.string().uri().allow('', null).optional(),
 }).unknown(true);

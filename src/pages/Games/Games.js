@@ -1,9 +1,10 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import styles from './Games.module.css';
 import { gameAPI, userAPI } from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import SEO from '../../components/SEO/SEO';
+import SponsoredBadge from '../../components/SponsoredBadge/SponsoredBadge';
 
 const COMMON_GENRES = [
   'Action',
@@ -35,15 +36,21 @@ const COMMON_PLATFORMS = [
 
 const Games = () => {
   const { user, isAuthenticated } = useAuth();
-  const [search, setSearch] = useState('');
-  const [selectedGenre, setSelectedGenre] = useState('all');
-  const [selectedPlatform, setSelectedPlatform] = useState('all');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [search, setSearch] = useState(() => searchParams.get('q') || '');
+  const [debouncedSearch, setDebouncedSearch] = useState(() => searchParams.get('q') || '');
+  const [selectedGenre, setSelectedGenre] = useState(() => searchParams.get('genre') || 'all');
+  const [selectedPlatform, setSelectedPlatform] = useState(() => searchParams.get('platform') || 'all');
+  const [page, setPage] = useState(() => Math.max(1, Number(searchParams.get('page')) || 1));
+  const [totalPages, setTotalPages] = useState(1);
   const [games, setGames] = useState([]);
+  const [sponsoredGames, setSponsoredGames] = useState([]);
   const [trackedById, setTrackedById] = useState({});
   const [loading, setLoading] = useState(false);
   const [savingId, setSavingId] = useState(null);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+  const isFirstFilterRun = useRef(true);
 
   const refreshTrackedGames = useCallback(async () => {
     try {
@@ -59,10 +66,10 @@ const Games = () => {
     }
   }, []);
 
-  const runSearch = useCallback(async (term = '') => {
+  const runSearch = useCallback(async ({ term = '', genre = 'all', platform = 'all', page: pageParam = 1 } = {}) => {
     const query = (term || '').trim();
-    const genreParam = selectedGenre !== 'all' && selectedGenre !== 'other' ? selectedGenre : '';
-    const platformParam = selectedPlatform !== 'all' && selectedPlatform !== 'other' ? selectedPlatform : '';
+    const genreParam = genre !== 'all' && genre !== 'other' ? genre : '';
+    const platformParam = platform !== 'all' && platform !== 'other' ? platform : '';
 
     setLoading(true);
     setError('');
@@ -73,29 +80,68 @@ const Games = () => {
         search: query,
         genre: genreParam,
         platform: platformParam,
-        page: 1,
+        page: pageParam,
       });
       setGames(Array.isArray(response.games) ? response.games : []);
+      setTotalPages(Math.max(1, Number(response.totalPages) || 1));
       if (response.warning) {
         setMessage(response.warning);
       }
     } catch (err) {
       setError(err.message || 'Failed to load global game radar');
+      setGames([]);
     } finally {
       setLoading(false);
     }
-  }, [selectedGenre, selectedPlatform]);
+  }, []);
+
+  // Debounce the free-text search box so typing doesn't hit the API on every keystroke.
+  useEffect(() => {
+    const handle = setTimeout(() => setDebouncedSearch(search.trim()), 400);
+    return () => clearTimeout(handle);
+  }, [search]);
+
+  // A new search term/genre/platform is a new result set, so jump back to page 1
+  // (but not on first mount, where `page` may already be seeded from the URL).
+  useEffect(() => {
+    if (isFirstFilterRun.current) {
+      isFirstFilterRun.current = false;
+      return;
+    }
+    setPage(1);
+  }, [debouncedSearch, selectedGenre, selectedPlatform]);
 
   useEffect(() => {
-    if (user?.role !== 'admin') {
-      runSearch('');
-      if (isAuthenticated) {
-        refreshTrackedGames();
-      } else {
-        setTrackedById({});
-      }
+    if (user?.role === 'admin') return;
+    runSearch({ term: debouncedSearch, genre: selectedGenre, platform: selectedPlatform, page });
+  }, [debouncedSearch, selectedGenre, selectedPlatform, page, user?.role, runSearch]);
+
+  // Sponsored slots don't depend on search/filter state - fetched once, capped
+  // server-side at 2, and shown pinned above the organic results.
+  useEffect(() => {
+    gameAPI.getSponsored()
+      .then((res) => setSponsoredGames(Array.isArray(res?.games) ? res.games : []))
+      .catch(() => setSponsoredGames([]));
+  }, []);
+
+  useEffect(() => {
+    if (user?.role === 'admin') return;
+    if (isAuthenticated) {
+      refreshTrackedGames();
+    } else {
+      setTrackedById({});
     }
-  }, [isAuthenticated, refreshTrackedGames, runSearch, user?.role]);
+  }, [isAuthenticated, refreshTrackedGames, user?.role]);
+
+  // Keep the URL shareable/bookmarkable without spamming browser history while typing.
+  useEffect(() => {
+    const next = new URLSearchParams();
+    if (debouncedSearch) next.set('q', debouncedSearch);
+    if (selectedGenre !== 'all') next.set('genre', selectedGenre);
+    if (selectedPlatform !== 'all') next.set('platform', selectedPlatform);
+    if (page > 1) next.set('page', String(page));
+    setSearchParams(next, { replace: true });
+  }, [debouncedSearch, selectedGenre, selectedPlatform, page, setSearchParams]);
 
   const genres = useMemo(() => ['all', ...COMMON_GENRES, 'other'], []);
 
@@ -182,11 +228,36 @@ const Games = () => {
         {!isAuthenticated && <p className={styles.publicNote}>Browse freely. Sign in to save games to your tracking list.</p>}
       </div>
 
+      {sponsoredGames.length > 0 && (
+        <div className={styles.sponsoredRow}>
+          {sponsoredGames.map((game) => (
+            <a
+              key={`sponsored-${game.id}`}
+              className={styles.sponsoredCard}
+              href={game.sponsoredUrl || '#'}
+              target="_blank"
+              rel="sponsored noopener noreferrer"
+            >
+              {game.coverUrl ? (
+                <img src={game.coverUrl} alt={game.title} className={styles.sponsoredImage} />
+              ) : (
+                <div className={styles.noCover}>No Cover</div>
+              )}
+              <div className={styles.sponsoredInfo}>
+                <SponsoredBadge />
+                <h3>{game.title}</h3>
+                <p className={styles.description}>{game.description}</p>
+              </div>
+            </a>
+          ))}
+        </div>
+      )}
+
       <form
         className={styles.searchBar}
         onSubmit={(e) => {
           e.preventDefault();
-          runSearch(search);
+          setDebouncedSearch(search.trim());
         }}
       >
         <input
@@ -294,6 +365,26 @@ const Games = () => {
               </div>
             </article>
           ))}
+        </div>
+      )}
+
+      {!loading && filteredGames.length > 0 && (
+        <div className={styles.pagination}>
+          <button
+            type="button"
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={page <= 1}
+          >
+            Previous
+          </button>
+          <span>Page {page} of {totalPages}</span>
+          <button
+            type="button"
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            disabled={page >= totalPages}
+          >
+            Next
+          </button>
         </div>
       )}
     </section>
