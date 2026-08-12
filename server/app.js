@@ -54,9 +54,12 @@ app.use(
 app.use(cookieParser());
 
 // Rate limiting
+// Env vars are strings; `max` in particular must be coerced, since a string
+// limit is compared against a numeric hit count. Number() also guards against
+// a malformed value silently becoming NaN and disabling the limit.
 const limiter = rateLimit({
-  windowMs: (process.env.RATE_LIMIT_WINDOW || 15) * 60 * 1000,
-  max: process.env.RATE_LIMIT_MAX_REQUESTS || 100,
+  windowMs: (Number(process.env.RATE_LIMIT_WINDOW) || 15) * 60 * 1000,
+  max: Number(process.env.RATE_LIMIT_MAX_REQUESTS) || 100,
   standardHeaders: true,
   legacyHeaders: false,
   handler: (req, res) => {
