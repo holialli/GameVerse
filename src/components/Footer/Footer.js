@@ -19,6 +19,9 @@ const Footer = () => {
           <Link to="/games">Games</Link>
           <Link to="/news">News</Link>
           <Link to="/compatibility">Compatibility</Link>
+          <Link to="/leaderboard">Leaderboard</Link>
+          <Link to="/support">Support Us</Link>
+          <Link to="/developers">API</Link>
           {!isAuthenticated && <Link to="/login">Login</Link>}
           {!isAuthenticated && <Link to="/register">Register</Link>}
           {isAuthenticated && !isAdmin && <Link to="/contact">Contact</Link>}
@@ -26,6 +29,8 @@ const Footer = () => {
           {isAuthenticated && !isAdmin && <Link to="/events">Events</Link>}
           {isAuthenticated && isAdmin && <Link to="/admin">Admin Center</Link>}
           {isAuthenticated && isAdmin && <Link to="/profile">Admin Profile</Link>}
+          <Link to="/privacy">Privacy Policy</Link>
+          <Link to="/terms">Terms of Service</Link>
         </div>
       </div>
     </footer>

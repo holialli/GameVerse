@@ -1,6 +1,7 @@
 const HardwareLayer = require('../models/HardwareLayer');
 const User = require('../models/User');
 const UserGame = require('../models/UserGame');
+const { computeCompatibility } = require('../services/compatibilityEngine');
 
 const defaultHardwareSeed = [
   { componentType: 'ram', name: '4 GB DDR3/DDR4', performanceScore: 28 },
@@ -51,6 +52,37 @@ const defaultHardwareSeed = [
   { componentType: 'ram', name: '24 GB DDR4/DDR5', performanceScore: 78 },
   { componentType: 'ram', name: '32 GB DDR4/DDR5', performanceScore: 86 },
   { componentType: 'ram', name: '64 GB DDR5', performanceScore: 96 },
+
+  // Older/budget hardware - the list above skews recent/high-end, which is
+  // exactly wrong for matching older games' "minimum" requirements text.
+  { componentType: 'cpu', name: 'Intel Core i3-4160', performanceScore: 30 },
+  { componentType: 'cpu', name: 'Intel Core i5-4460', performanceScore: 38 },
+  { componentType: 'cpu', name: 'Intel Core i5-6500', performanceScore: 42 },
+  { componentType: 'cpu', name: 'Intel Core i5-7400', performanceScore: 45 },
+  { componentType: 'cpu', name: 'Intel Core i7-4770K', performanceScore: 46 },
+  { componentType: 'cpu', name: 'Intel Core i5-8400', performanceScore: 55 },
+  { componentType: 'cpu', name: 'Intel Core i5-9400F', performanceScore: 58 },
+  { componentType: 'cpu', name: 'AMD FX-8350', performanceScore: 28 },
+  { componentType: 'cpu', name: 'AMD Athlon 200GE', performanceScore: 25 },
+  { componentType: 'cpu', name: 'AMD Ryzen 3 1200', performanceScore: 40 },
+  { componentType: 'cpu', name: 'AMD Ryzen 3 3200G', performanceScore: 44 },
+  { componentType: 'cpu', name: 'AMD Ryzen 5 2600', performanceScore: 56 },
+
+  { componentType: 'gpu', name: 'NVIDIA GT 1030', performanceScore: 18 },
+  { componentType: 'gpu', name: 'NVIDIA GTX 750 Ti', performanceScore: 22 },
+  { componentType: 'gpu', name: 'NVIDIA GTX 950', performanceScore: 28 },
+  { componentType: 'gpu', name: 'NVIDIA GTX 960', performanceScore: 32 },
+  { componentType: 'gpu', name: 'NVIDIA GTX 970', performanceScore: 38 },
+  { componentType: 'gpu', name: 'NVIDIA GTX 1050', performanceScore: 34 },
+  { componentType: 'gpu', name: 'NVIDIA GTX 1650', performanceScore: 42 },
+  { componentType: 'gpu', name: 'AMD RX 460', performanceScore: 26 },
+  { componentType: 'gpu', name: 'AMD RX 550', performanceScore: 27 },
+  { componentType: 'gpu', name: 'AMD RX 570', performanceScore: 40 },
+  { componentType: 'gpu', name: 'Intel UHD Graphics 630 (Integrated)', performanceScore: 12 },
+
+  { componentType: 'ram', name: '2 GB DDR3', performanceScore: 12 },
+  { componentType: 'ram', name: '4 GB DDR3', performanceScore: 22 },
+  { componentType: 'ram', name: '6 GB DDR3/DDR4', performanceScore: 36 },
 ];
 
 const ensureHardwareCatalog = async () => {
@@ -75,33 +107,6 @@ const normalizeHardware = (h) => ({
   name: h.name,
   performanceScore: h.performanceScore || 50,
 });
-
-const buildTips = ({ status, cpuScore, gpuScore, ramGb }) => {
-  const tips = [];
-
-  if (gpuScore < 65) tips.push('Lower shadow quality and anti-aliasing first to recover FPS.');
-  if (cpuScore < 65) tips.push('Limit background apps and cap frame rate to reduce CPU spikes.');
-  if (ramGb < 16) tips.push('Upgrade to 16GB+ RAM to reduce stutter and long texture loads.');
-
-  if (status === 'Green') {
-    tips.push('Use high textures with DLSS/FSR Quality mode for best visual balance.');
-  } else if (status === 'Yellow') {
-    tips.push('Start on medium preset and increase settings one by one while monitoring FPS.');
-  } else {
-    tips.push('Prefer 1080p low-medium settings, disable ray tracing, and lock to 45-60 FPS.');
-  }
-
-  tips.push('Gameplay strategy tip: learn one core build/playstyle first before experimenting with advanced mechanics.');
-  return tips;
-};
-
-const platformProfiles = {
-  pc: { label: 'PC (Desktop)', scoreDelta: 0, fpsMultiplier: 1 },
-  steamdeck: { label: 'Steam Deck', scoreDelta: 4, fpsMultiplier: 0.88 },
-  ps5: { label: 'PlayStation 5', scoreDelta: 10, fpsMultiplier: 1.05 },
-  xboxseriesx: { label: 'Xbox Series X', scoreDelta: 9, fpsMultiplier: 1.03 },
-  nintendoswitch: { label: 'Nintendo Switch', scoreDelta: -6, fpsMultiplier: 0.72 },
-};
 
 exports.getHardwareList = async (req, res) => {
   try {
@@ -157,29 +162,14 @@ exports.checkCompatibility = async (req, res) => {
 
     const cpuScore = Number(cpu.performanceScore || 50);
     const gpuScore = Number(gpu.performanceScore || 50);
-    const ramScore = Math.min(Number(ramGb) * 4, 100);
 
-    const platformKey = String(platform || 'pc').toLowerCase();
-    const platformProfile = platformProfiles[platformKey] || platformProfiles.pc;
-
-    const weighted = Math.max(
-      0,
-      Math.min(100, Math.round((cpuScore * 0.4 + gpuScore * 0.5 + ramScore * 0.1) + platformProfile.scoreDelta))
-    );
-
-    let status = 'Red';
-    if (weighted >= 75) status = 'Green';
-    else if (weighted >= 55) status = 'Yellow';
-
-    const bottleneck = gpuScore < cpuScore ? 'GPU' : 'CPU';
-
-    const estimatedFps = {
-      low: Math.max(18, Math.round(weighted * 0.9 * platformProfile.fpsMultiplier)),
-      medium: Math.max(15, Math.round(weighted * 0.75 * platformProfile.fpsMultiplier)),
-      high: Math.max(12, Math.round(weighted * 0.58 * platformProfile.fpsMultiplier)),
-    };
-
-    const tips = buildTips({ status, cpuScore, gpuScore, ramGb: Number(ramGb) });
+    const result = await computeCompatibility({
+      rawgId: Number(rawgId),
+      cpuScore,
+      gpuScore,
+      ramGb: Number(ramGb),
+      platform,
+    });
 
     return res.json({
       game: {
@@ -187,46 +177,112 @@ exports.checkCompatibility = async (req, res) => {
         title: userGame.title,
         coverUrl: userGame.coverUrl,
       },
-      status,
-      tier: status === 'Green' ? 'Great Fit' : status === 'Yellow' ? 'Playable with tuning' : 'Needs upgrades',
-      bottleneck,
+      status: result.status,
+      tier: result.tier,
+      bottleneck: result.bottleneck,
       details: {
         cpu: normalizeHardware(cpu),
         gpu: normalizeHardware(gpu),
         ramGb: Number(ramGb),
-        platform: {
-          key: platformKey,
-          label: platformProfile.label,
-        },
-        cpuRank: cpuScore,
-        gpuRank: gpuScore,
-        combinedScore: weighted,
+        platform: result.platform,
+        cpuRank: result.cpuRank,
+        gpuRank: result.gpuRank,
+        combinedScore: result.combinedScore,
       },
-      estimatedFps,
-      tips,
+      estimatedFps: result.estimatedFps,
+      tips: result.tips,
+      tipLinks: result.tipLinks,
+      gameSpecific: result.gameSpecific,
     });
   } catch (error) {
     res.status(500).json({ error: 'Failed to check compatibility' });
   }
 };
 
-exports.saveHardwareProfile = async (req, res) => {
+const PROFILE_LIMITS = { free: 1, premium: 5 };
+
+exports.listHardwareProfiles = async (req, res) => {
   try {
-    const userId = req.user?.id;
-    if (!userId) {
-      return res.status(401).json({ error: 'Unauthorized' });
+    const user = await User.findById(req.user.id).select('hardwareProfiles subscriptionTier').lean();
+    res.json({
+      profiles: user?.hardwareProfiles || [],
+      limit: PROFILE_LIMITS[user?.subscriptionTier || 'free'],
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to load hardware profiles' });
+  }
+};
+
+exports.createHardwareProfile = async (req, res) => {
+  try {
+    const { name, cpuId, gpuId, ramGb, platform } = req.body;
+    if (!name) return res.status(400).json({ error: 'Profile name is required' });
+
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const limit = PROFILE_LIMITS[user.subscriptionTier || 'free'];
+    if (user.hardwareProfiles.length >= limit) {
+      return res.status(403).json({
+        error: `Your plan allows up to ${limit} saved hardware profile${limit === 1 ? '' : 's'}. Upgrade to Premium for more.`,
+        limit,
+      });
     }
 
-    const { profile } = req.body;
+    user.hardwareProfiles.push({
+      name,
+      cpuId,
+      gpuId,
+      ramGb: ramGb || 16,
+      platform: platform || 'pc',
+      isDefault: user.hardwareProfiles.length === 0,
+    });
+    await user.save();
 
-    await User.findByIdAndUpdate(
-      userId,
-      { $set: { hardwareProfile: profile || {} } },
-      { new: true, strict: false }
-    );
-
-    res.json({ message: 'Hardware profile saved' });
+    res.status(201).json({ message: 'Hardware profile saved', profiles: user.hardwareProfiles });
   } catch (error) {
     res.status(500).json({ error: 'Failed to save hardware profile' });
+  }
+};
+
+exports.updateHardwareProfile = async (req, res) => {
+  try {
+    const { profileId } = req.params;
+    const { name, cpuId, gpuId, ramGb, platform, isDefault } = req.body;
+
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const profile = user.hardwareProfiles.id(profileId);
+    if (!profile) return res.status(404).json({ error: 'Hardware profile not found' });
+
+    if (name !== undefined) profile.name = name;
+    if (cpuId !== undefined) profile.cpuId = cpuId;
+    if (gpuId !== undefined) profile.gpuId = gpuId;
+    if (ramGb !== undefined) profile.ramGb = ramGb;
+    if (platform !== undefined) profile.platform = platform;
+    if (isDefault) {
+      user.hardwareProfiles.forEach((p) => { p.isDefault = String(p._id) === String(profile._id); });
+    }
+
+    await user.save();
+    res.json({ message: 'Hardware profile updated', profiles: user.hardwareProfiles });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update hardware profile' });
+  }
+};
+
+exports.deleteHardwareProfile = async (req, res) => {
+  try {
+    const { profileId } = req.params;
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    user.hardwareProfiles.pull({ _id: profileId });
+    await user.save();
+
+    res.json({ message: 'Hardware profile deleted', profiles: user.hardwareProfiles });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to delete hardware profile' });
   }
 };

@@ -33,6 +33,11 @@ jobs:
           cd server
           npm install
 
+      - name: Run Backend Tests
+        run: |
+          cd server
+          npm test
+
       - name: Snyk Vulnerability Scan (Backend)
         uses: snyk/actions/node@master
         env:

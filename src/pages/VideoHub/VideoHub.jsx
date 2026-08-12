@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import styles from './VideoHub.module.css';
 import { useAuth } from '../../contexts/AuthContext';
+import EmptyState from '../../components/EmptyState/EmptyState';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL
   ? `${process.env.REACT_APP_API_URL}/api`
@@ -147,7 +148,21 @@ const VideoHub = () => {
       {loading && <p>Loading videos...</p>}
 
       {!loading && !error && videos.length === 0 && (
-        <div className={styles.empty}>No approved videos yet.</div>
+        isAuthenticated ? (
+          <EmptyState
+            icon="🎬"
+            title="No approved videos yet"
+            message="Be the first to share a gameplay clip or highlight — paste a YouTube or Twitch link above."
+          />
+        ) : (
+          <EmptyState
+            icon="🎬"
+            title="No approved videos yet"
+            message="Sign in to submit the first gameplay clip or highlight."
+            actionTo="/login"
+            actionLabel="Login to submit"
+          />
+        )
       )}
 
       {!loading && videos.length > 0 && (

@@ -53,6 +53,27 @@
   font-size: 1.6rem;
 }
 
+.frameGold {
+  border: 3px solid #e0b13e;
+  box-shadow: 0 0 10px 1px color-mix(in srgb, #e0b13e 55%, transparent);
+}
+
+.frameNeon {
+  border: 3px solid #39f7d8;
+  box-shadow: 0 0 12px 2px color-mix(in srgb, #39f7d8 60%, transparent);
+}
+
+.framePixel {
+  border: 3px dashed var(--text);
+  border-radius: 4px;
+}
+
+.premiumUpsell {
+  grid-column: 1 / -1;
+  color: var(--muted);
+  font-style: italic;
+}
+
 .editBtn,
 .form button {
   border: 0;

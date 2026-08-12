@@ -24,14 +24,20 @@ const SEO = ({
   publishedDate = null,
   jsonLd = null,
 }) => {
+  const safeTitle = typeof title === 'string' && title.trim() ? title.trim() : 'GameVerse';
+  const safeDescription = typeof description === 'string' && description.trim()
+    ? description.trim()
+    : 'Explore worlds, master genres, and stay ahead of gaming culture';
+
   // Enforce length limits for best practices
-  const truncatedTitle = title.length > 60 ? title.substring(0, 57) + '...' : title;
-  const truncatedDesc = description.length > 155 ? description.substring(0, 152) + '...' : description;
+  const truncatedTitle = safeTitle.length > 60 ? safeTitle.substring(0, 57) + '...' : safeTitle;
+  const truncatedDesc = safeDescription.length > 155 ? safeDescription.substring(0, 152) + '...' : safeDescription;
+  const finalTitle = /gameverse/i.test(truncatedTitle) ? truncatedTitle : `${truncatedTitle} | GameVerse`;
 
   return (
     <Helmet>
       {/* Basic Meta Tags */}
-      <title>{truncatedTitle} | GameVerse</title>
+      <title>{finalTitle}</title>
       <meta name="description" content={truncatedDesc} />
       <meta name="author" content={author} />
       <meta name="robots" content="index, follow" />

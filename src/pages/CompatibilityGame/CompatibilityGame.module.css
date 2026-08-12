@@ -1,0 +1,144 @@
+.page {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 24px 16px 48px;
+  color: var(--text);
+}
+
+.status {
+  max-width: 600px;
+  margin: 80px auto;
+  padding: 24px;
+  text-align: center;
+  color: var(--muted);
+}
+
+.errorText {
+  color: var(--danger);
+  margin-bottom: 12px;
+}
+
+.retryButton {
+  padding: 10px 18px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(90deg, var(--primary), var(--accent));
+  color: #031116;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.header {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+.cover {
+  width: 220px;
+  max-width: 100%;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--bg-elev);
+  object-fit: cover;
+}
+
+.header h1 {
+  margin: 0 0 8px;
+}
+
+.subhead {
+  color: var(--muted);
+  margin: 0 0 12px;
+}
+
+.linkRow a {
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.requirementsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+  margin-top: 28px;
+}
+
+.reqCard {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--card);
+  padding: 16px;
+}
+
+.reqCard h2 {
+  margin-top: 0;
+  font-size: 1.05rem;
+}
+
+.reqCard p {
+  white-space: pre-line;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.noReqs {
+  margin-top: 24px;
+  padding: 16px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  color: var(--muted);
+}
+
+.cta {
+  margin-top: 32px;
+  padding: 20px;
+  border-radius: var(--radius);
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  text-align: center;
+}
+
+.cta h2 {
+  margin-top: 0;
+}
+
+.ctaBtn {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 10px 20px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(90deg, var(--primary), var(--accent));
+  color: #031116;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.ctaSecondary {
+  display: block;
+  margin-top: 10px;
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.tierLinks {
+  margin-top: 28px;
+  text-align: center;
+  color: var(--muted);
+}
+
+.tierLinkRow {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.tierLinkRow a {
+  color: var(--primary);
+  font-weight: 600;
+}

@@ -2,6 +2,7 @@ const Purchase = require('../models/Purchase');
 const Game = require('../models/Game');
 const User = require('../models/User');
 const { sendGamePurchaseEmail, sendGameRentalEmail } = require('../services/emailService');
+const notify = require('../utils/notify');
 
 // User buys a game
 exports.buyGame = async (req, res) => {
@@ -41,6 +42,13 @@ exports.buyGame = async (req, res) => {
     sendGamePurchaseEmail(user.email, user.name, game.title, game.buyPrice).catch(err =>
       console.error('Email error:', err)
     );
+    notify({
+      userId,
+      type: 'purchase',
+      title: 'Purchase confirmed',
+      message: `You added ${game.title} to your owned games.`,
+      link: '/profile',
+    });
 
     // Populate game and user info
     await purchase.populate('gameId');
@@ -101,6 +109,13 @@ exports.rentGame = async (req, res) => {
     sendGameRentalEmail(user.email, user.name, game.title, game.rentPrice, expiryDate).catch(err =>
       console.error('Email error:', err)
     );
+    notify({
+      userId,
+      type: 'rental',
+      title: 'Rental confirmed',
+      message: `${game.title} is rented for 7 days.`,
+      link: '/profile',
+    });
 
     await purchase.populate('gameId');
 

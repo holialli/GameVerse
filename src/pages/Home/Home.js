@@ -2,10 +2,35 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import styles from './Home.module.css'; 
 import Card from '../../components/Card/card';
-import AskAI from '../../components/AskAI/AskAI'; 
+import CommunityChat from '../../components/CommunityChat/CommunityChat';
+import AskAIWidget from '../../components/AskAIWidget/AskAIWidget';
 import { optimizeUnsplashUrl } from '../../utils/imageOptimization';
 import SEO from '../../components/SEO/SEO';
 import { generateOrganizationSchema } from '../../components/JSONLDSchemas/VideoGameSchema';
+
+const differentiators = [
+  {
+    id: 'd-1',
+    title: 'Ask AI, Instantly',
+    body: 'A real Gemini-backed quick-ask widget right on this page - no sign-in required. Ask for a recommendation and get one back in seconds.',
+    link: '/discovery',
+    linkLabel: 'Open Discovery Oracle',
+  },
+  {
+    id: 'd-2',
+    title: 'Will My PC Run It?',
+    body: 'Check published minimum/recommended requirements for any game, then run your exact CPU/GPU/RAM against it in the Compatibility Lab.',
+    link: '/compatibility',
+    linkLabel: 'Check Compatibility',
+  },
+  {
+    id: 'd-3',
+    title: 'Best Games By Hardware Tier',
+    body: "Not sure what your PC can handle? Browse curated picks for budget, mid-range, and high-end builds.",
+    link: '/best-games/mid-range',
+    linkLabel: 'Browse Mid-Range Picks',
+  },
+];
 
 const defaultHighlights = [
   {
@@ -68,7 +93,24 @@ const Home = () => {
             <Link className="button ghost" to="/news">Latest News</Link>
             <Link className="button ghost" to="/compatibility">Check Compatibility</Link>
           </div>
-          <AskAI />
+          <AskAIWidget />
+        </div>
+      </section>
+      <CommunityChat />
+
+      <section className="section">
+        <div className="section-header">
+          <h2 className="section-title">Why GameVerse</h2>
+          <p className="section-desc">The tools that make this more than another game-tracking site.</p>
+        </div>
+        <div className={styles.differentiatorGrid}>
+          {differentiators.map((item) => (
+            <article key={item.id} className={styles.differentiatorCard}>
+              <h3>{item.title}</h3>
+              <p>{item.body}</p>
+              <Link to={item.link}>{item.linkLabel} &rarr;</Link>
+            </article>
+          ))}
         </div>
       </section>
 

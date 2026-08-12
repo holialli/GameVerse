@@ -1,0 +1,32 @@
+.card {
+  margin-top: 20px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius, 10px);
+  background: var(--bg-elev);
+}
+
+.card h3 {
+  margin: 0 0 10px;
+}
+
+.linkRow {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.storeLink {
+  padding: 8px 14px;
+  border-radius: var(--radius-sm, 8px);
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--primary);
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-decoration: none;
+}
+
+.storeLink:hover {
+  border-color: var(--primary);
+}

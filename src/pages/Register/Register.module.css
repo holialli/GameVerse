@@ -95,6 +95,7 @@
 
 .redirect a:hover {
   text-decoration: underline;
+}
 
 .passwordRequirements {
   margin-top: 12px;
@@ -176,4 +177,15 @@
   font-size: 12px;
   text-align: center;
 }
+
+.terms {
+  margin: 16px 0 4px;
+  font-size: 12px;
+  text-align: center;
+  color: var(--muted);
+}
+
+.terms a {
+  color: var(--primary);
+  font-weight: 600;
 }

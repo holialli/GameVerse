@@ -12,6 +12,8 @@ router.post('/games/:rawgId/session', authMiddleware, userController.logPlaySess
 
 router.get('/leaderboard/preview', userController.getLeaderboardPreview);
 router.get('/leaderboard/full', userController.getFullLeaderboard);
+router.get('/public/:username', userController.getPublicProfile);
+router.get('/newsletter/unsubscribe', userController.unsubscribeNewsletter);
 
 router.get('/:id', authMiddleware, userController.getUserProfile);
 router.patch('/:id/profile', authMiddleware, userController.updateProfile);

@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const adminController = require('../controllers/adminController');
 const authMiddleware = require('../middlewares/authMiddleware');
-const requireAdmin = require('../middleware/adminMiddleware');
+const requireAdmin = require('../middlewares/adminMiddleware');
 
 // Middleware chain enforcement
 router.use(authMiddleware);

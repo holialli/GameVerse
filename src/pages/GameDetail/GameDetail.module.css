@@ -1,0 +1,155 @@
+.page {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 24px 16px 48px;
+  color: var(--text);
+}
+
+.cover {
+  width: 100%;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  margin: 16px 0;
+  background: var(--bg-elev);
+}
+
+.status {
+  max-width: 600px;
+  margin: 80px auto;
+  padding: 24px;
+  text-align: center;
+  color: var(--muted);
+}
+
+.errorText {
+  color: var(--danger);
+  margin-bottom: 12px;
+}
+
+.retryButton {
+  padding: 10px 18px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(90deg, var(--primary), var(--accent));
+  color: #031116;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.similarGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.similarCard {
+  display: block;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--card);
+  color: var(--text);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.similarCard:hover {
+  border-color: var(--primary);
+}
+
+.compatLink {
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.reviews {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.reviewForm {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 12px 0 20px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-elev);
+}
+
+.starRow {
+  display: flex;
+  gap: 4px;
+}
+
+.star,
+.starActive {
+  background: none;
+  border: none;
+  font-size: 1.4rem;
+  cursor: pointer;
+  color: var(--border);
+  padding: 0;
+}
+
+.starActive {
+  color: var(--accent);
+}
+
+.reviewForm textarea {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text);
+  padding: 8px 10px;
+  font-family: inherit;
+  resize: vertical;
+}
+
+.reviewSubmit {
+  align-self: flex-start;
+  padding: 8px 16px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(90deg, var(--primary), var(--accent));
+  color: #031116;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.reviewSignIn {
+  color: var(--muted);
+}
+
+.reviewsLoading,
+.noReviews {
+  color: var(--muted);
+}
+
+.reviewList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.reviewItem {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+}
+
+.reviewHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.reviewStars {
+  color: var(--accent);
+}

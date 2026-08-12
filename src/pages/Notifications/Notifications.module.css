@@ -1,0 +1,91 @@
+.page {
+  max-width: 700px;
+  margin: 0 auto;
+  padding: 1.6rem 1rem 2.8rem;
+  color: var(--text);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.header h1 {
+  margin: 0;
+}
+
+.markAllBtn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 12px;
+  color: var(--primary);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.status {
+  margin-top: 2rem;
+  color: var(--muted);
+  text-align: center;
+}
+
+.list {
+  margin: 1.2rem 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.item,
+.itemUnread {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  background: var(--bg-elev);
+}
+
+.itemUnread {
+  border-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 8%, var(--bg-elev));
+}
+
+.itemContent p {
+  margin: 4px 0;
+  color: var(--muted);
+}
+
+.time {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.itemActions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-end;
+  white-space: nowrap;
+}
+
+.itemActions a {
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.itemActions button {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 0.75rem;
+  color: var(--text);
+  cursor: pointer;
+}

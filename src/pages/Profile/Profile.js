@@ -1,6 +1,10 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import axiosInstance from '../../lib/axios';
 import styles from './Profile.module.css';
+
+const AVATAR_FRAME_OPTIONS = ['gold', 'neon', 'pixel'];
 
 const Profile = () => {
   const [profile, setProfile] = useState(null);
@@ -8,9 +12,10 @@ const Profile = () => {
   const [adminStats, setAdminStats] = useState(null);
   const [adminLogs, setAdminLogs] = useState([]);
   const [editing, setEditing] = useState(false);
-  const [form, setForm] = useState({ name: '', username: '', bio: '', isPrivate: false, avatar: '' });
+  const [form, setForm] = useState({ name: '', username: '', bio: '', isPrivate: false, avatar: '', profileBanner: '', avatarFrame: '', newsletterOptIn: false, customSlug: '' });
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [checkingOut, setCheckingOut] = useState(false);
 
   const load = async () => {
     const [profileRes, libraryRes] = await Promise.all([
@@ -26,6 +31,10 @@ const Profile = () => {
       bio: p.bio || '',
       isPrivate: !!p.isPrivate,
       avatar: p.avatar || '',
+      profileBanner: p.profileBanner || '',
+      avatarFrame: p.avatarFrame || '',
+      newsletterOptIn: !!p.newsletterOptIn,
+      customSlug: p.customSlug || '',
     });
     setGames(Array.isArray(libraryRes.data.games) ? libraryRes.data.games : []);
 
@@ -58,6 +67,22 @@ const Profile = () => {
     }
   };
 
+  const upgradeToPremium = async () => {
+    setCheckingOut(true);
+    try {
+      const res = await axiosInstance.post('/subscriptions/checkout');
+      if (res.data?.checkoutUrl) {
+        window.location.href = res.data.checkoutUrl;
+      } else {
+        toast.error('Checkout is not available right now.');
+      }
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'Failed to start checkout.');
+    } finally {
+      setCheckingOut(false);
+    }
+  };
+
   if (!profile) return <div className={styles.state}>Loading profile...</div>;
 
   const badges = Array.isArray(profile.badges) ? profile.badges : [];
@@ -66,15 +91,32 @@ const Profile = () => {
   const superBadges = badges.filter((b) => b.tier === 'super');
 
   const isAdmin = profile.role === 'admin';
+  const isPremium = profile.subscriptionTier === 'premium';
 
   return (
     <section className={styles.page}>
-      <div className={styles.hero}>
+      <div
+        className={styles.hero}
+        style={profile.profileBanner ? { backgroundImage: `url(${profile.profileBanner})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}
+      >
         <div className={styles.identity}>
-          {form.avatar ? <img src={form.avatar} alt="avatar" className={styles.avatar} /> : <div className={styles.avatarFallback}>{(profile.name || 'U')[0]}</div>}
+          {form.avatar ? (
+            <img
+              src={form.avatar}
+              alt="avatar"
+              className={`${styles.avatar} ${profile.avatarFrame ? styles[`frame${profile.avatarFrame.charAt(0).toUpperCase()}${profile.avatarFrame.slice(1)}`] : ''}`}
+            />
+          ) : (
+            <div className={styles.avatarFallback}>{(profile.name || 'U')[0]}</div>
+          )}
           <div>
             <h1>{profile.name}</h1>
-            <p>@{profile.username || 'username-not-set'}</p>
+            <p>
+              @{profile.username || 'username-not-set'}
+              {profile.username && !isAdmin && !profile.isPrivate && (
+                <> &middot; <Link to={`/u/${profile.customSlug || profile.username}`}>View public profile</Link></>
+              )}
+            </p>
             <small>{isAdmin ? 'Administrator' : 'Player'} • Level {profile.level || 1} • {profile.xp || 0} XP</small>
           </div>
         </div>
@@ -89,9 +131,27 @@ const Profile = () => {
         <form className={styles.form} onSubmit={saveProfile}>
           <label>Name<input value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} /></label>
           <label>Username<input value={form.username} onChange={(e) => setForm((p) => ({ ...p, username: e.target.value }))} /></label>
+          <label>Custom Profile URL (optional)<input placeholder="e.g. my-name" value={form.customSlug} onChange={(e) => setForm((p) => ({ ...p, customSlug: e.target.value }))} /></label>
           <label>Avatar URL<input value={form.avatar} onChange={(e) => setForm((p) => ({ ...p, avatar: e.target.value }))} /></label>
           <label>Bio<textarea rows={4} value={form.bio} onChange={(e) => setForm((p) => ({ ...p, bio: e.target.value }))} /></label>
           <label className={styles.checkbox}><input type="checkbox" checked={form.isPrivate} onChange={(e) => setForm((p) => ({ ...p, isPrivate: e.target.checked }))} /> Private profile</label>
+          <label className={styles.checkbox}><input type="checkbox" checked={form.newsletterOptIn} onChange={(e) => setForm((p) => ({ ...p, newsletterOptIn: e.target.checked }))} /> Email me weekly price-drop deals</label>
+
+          {isPremium ? (
+            <>
+              <label>Profile Banner URL<input value={form.profileBanner} onChange={(e) => setForm((p) => ({ ...p, profileBanner: e.target.value }))} /></label>
+              <label>
+                Avatar Frame
+                <select value={form.avatarFrame} onChange={(e) => setForm((p) => ({ ...p, avatarFrame: e.target.value }))}>
+                  <option value="">None</option>
+                  {AVATAR_FRAME_OPTIONS.map((f) => <option key={f} value={f}>{f}</option>)}
+                </select>
+              </label>
+            </>
+          ) : (
+            <p className={styles.premiumUpsell}>Profile banners and avatar frames are a Premium feature.</p>
+          )}
+
           <button type="submit">Save Changes</button>
         </form>
       )}
@@ -112,6 +172,22 @@ const Profile = () => {
             <li>Privacy mode: <strong>{profile.isPrivate ? 'Enabled' : 'Public'}</strong></li>
           </ul>
         </article>
+
+        {!isAdmin && (
+          <article className={styles.card}>
+            <h2>Premium</h2>
+            {isPremium ? (
+              <p>You're on <strong>GameVerse Premium</strong> - unlimited AI queries, up to 5 saved hardware profiles, and profile cosmetics.</p>
+            ) : (
+              <>
+                <p className={styles.empty}>Free plan: 1 saved hardware profile, standard AI query limits.</p>
+                <button type="button" onClick={upgradeToPremium} disabled={checkingOut} className={styles.editBtn}>
+                  {checkingOut ? 'Redirecting...' : 'Upgrade to Premium'}
+                </button>
+              </>
+            )}
+          </article>
+        )}
 
         <article className={styles.card}>
           <h2>Badges</h2>

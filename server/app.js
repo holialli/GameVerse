@@ -1,7 +1,6 @@
 const express = require('express');
 const helmet = require('helmet');
 const mongoSanitize = require('express-mongo-sanitize');
-const xssClean = require('xss-clean');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 const cookieParser = require('cookie-parser');
@@ -30,7 +29,6 @@ app.use(helmet({
   }
 }));
 app.use(mongoSanitize());
-app.use(xssClean());
 
 // CORS configuration
 const allowedOrigins = [
@@ -74,8 +72,11 @@ const limiter = rateLimit({
 
 app.use('/api/', limiter);
 
-// Body parser middleware - increased limit for image uploads (base64)
-app.use(express.json({ limit: '50mb' }));
+// Body parser middleware - increased limit for image uploads (base64).
+// The verify callback stashes the raw body on every request as req.rawBody -
+// needed by the Lemon Squeezy webhook's HMAC signature check, which must
+// hash the exact bytes received, not a re-serialized version of req.body.
+app.use(express.json({ limit: '50mb', verify: (req, res, buf) => { req.rawBody = buf; } }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Static files
@@ -110,6 +111,12 @@ app.use('/api/ai', require('./routes/aiRoutes'));
 app.use('/api/hardware', require('./routes/hardwareRoutes'));
 app.use('/api/events', require('./routes/eventRoutes'));
 app.use('/api/news', require('./routes/newsRoutes'));
+app.use('/api/reviews', require('./routes/reviewRoutes'));
+app.use('/api/notifications', require('./routes/notificationRoutes'));
+app.use('/api/webhooks', require('./routes/webhookRoutes'));
+app.use('/api/developers', require('./routes/developerRoutes'));
+app.use('/api/v1/compatibility', require('./routes/publicApiRoutes'));
+app.use('/api/subscriptions', require('./routes/subscriptionRoutes'));
 app.use('/', require('./routes/sitemapRoutes'));
 
 // 404 handler

@@ -1,7 +1,21 @@
 const mongoose = require('mongoose');
+const crypto = require('crypto');
 const User = require('../models/User');
 const UserGame = require('../models/UserGame');
 const Event = require('../models/Event');
+const notify = require('../utils/notify');
+
+const notifyNewBadges = (userId, newBadges) => {
+  newBadges.forEach((badge) => {
+    notify({
+      userId,
+      type: 'badge_earned',
+      title: `Badge earned: ${badge.name}`,
+      message: badge.description || '',
+      link: '/profile',
+    });
+  });
+};
 
 const BADGE_DEFINITIONS = {
   FIRST_TRACK: {
@@ -113,18 +127,26 @@ const applyAutoBadges = (user, games) => {
   const sessionsCount = games.reduce((acc, g) => acc + (g.sessionsCount || 0), 0);
   const playtimeMinutes = games.reduce((acc, g) => acc + (g.playtimeMinutes || 0), 0);
   let changed = false;
+  const newBadges = [];
 
-  if (trackedCount >= 1) changed = addBadge(user, BADGE_DEFINITIONS.FIRST_TRACK) || changed;
-  if (trackedCount >= 5) changed = addBadge(user, BADGE_DEFINITIONS.LIBRARY_5) || changed;
-  if (trackedCount >= 15) changed = addBadge(user, BADGE_DEFINITIONS.LIBRARY_15) || changed;
-  if (watchlistCount >= 5) changed = addBadge(user, BADGE_DEFINITIONS.WATCHLIST_5) || changed;
-  if (completedCount >= 3) changed = addBadge(user, BADGE_DEFINITIONS.COMPLETED_3) || changed;
-  if (completedCount >= 10) changed = addBadge(user, BADGE_DEFINITIONS.COMPLETED_10) || changed;
-  if (sessionsCount >= 25) changed = addBadge(user, BADGE_DEFINITIONS.SESSION_25) || changed;
-  if (playtimeMinutes >= 6000) changed = addBadge(user, BADGE_DEFINITIONS.PLAYTIME_100H) || changed;
-  if ((user.xp || 0) >= 2500) changed = addBadge(user, BADGE_DEFINITIONS.XP_2500) || changed;
+  const tryAdd = (definition) => {
+    if (addBadge(user, definition)) {
+      changed = true;
+      newBadges.push(definition);
+    }
+  };
 
-  return { changed, trackedCount, watchlistCount, completedCount, sessionsCount, playtimeMinutes };
+  if (trackedCount >= 1) tryAdd(BADGE_DEFINITIONS.FIRST_TRACK);
+  if (trackedCount >= 5) tryAdd(BADGE_DEFINITIONS.LIBRARY_5);
+  if (trackedCount >= 15) tryAdd(BADGE_DEFINITIONS.LIBRARY_15);
+  if (watchlistCount >= 5) tryAdd(BADGE_DEFINITIONS.WATCHLIST_5);
+  if (completedCount >= 3) tryAdd(BADGE_DEFINITIONS.COMPLETED_3);
+  if (completedCount >= 10) tryAdd(BADGE_DEFINITIONS.COMPLETED_10);
+  if (sessionsCount >= 25) tryAdd(BADGE_DEFINITIONS.SESSION_25);
+  if (playtimeMinutes >= 6000) tryAdd(BADGE_DEFINITIONS.PLAYTIME_100H);
+  if ((user.xp || 0) >= 2500) tryAdd(BADGE_DEFINITIONS.XP_2500);
+
+  return { changed, newBadges, trackedCount, watchlistCount, completedCount, sessionsCount, playtimeMinutes };
 };
 
 const awardXP = async (userId, amount, badgeName = null) => {
@@ -135,12 +157,15 @@ const awardXP = async (userId, amount, badgeName = null) => {
   upsertLevelFromXP(user);
 
   if (badgeName) {
-    addBadge(user, {
+    const definition = {
       key: badgeName.toLowerCase().replace(/\s+/g, '-'),
       name: badgeName,
       tier: 'minor',
       description: '',
-    });
+    };
+    if (addBadge(user, definition)) {
+      notifyNewBadges(userId, [definition]);
+    }
   }
 
   ensureAdminPrestige(user);
@@ -170,6 +195,7 @@ exports.getUserProfile = async (req, res) => {
     ensureAdminPrestige(user);
     if (autoResult.changed) {
       await user.save();
+      notifyNewBadges(user.id, autoResult.newBadges);
     }
 
     const topGenresMap = allGames.reduce((acc, g) => {
@@ -204,9 +230,65 @@ exports.getUserProfile = async (req, res) => {
   }
 };
 
+// Public, unauthenticated profile lookup for shareable /u/:username pages.
+// Deliberately projects a safe, fixed field set (never email) rather than
+// reusing getUserProfile's `...user.toObject()` spread, and never persists
+// auto-badge calculations - this endpoint is anonymous, cacheable traffic.
+exports.getPublicProfile = async (req, res) => {
+  try {
+    const handle = String(req.params.username || '').trim().toLowerCase();
+    const user = await User.findOne({ $or: [{ username: handle }, { customSlug: handle }] }).select('-password -email');
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    if (user.isPrivate) {
+      return res.status(403).json({ message: 'This profile is private.', isPrivate: true, username: user.username });
+    }
+
+    const allGames = await UserGame.find({ userId: user.id });
+    const autoResult = applyAutoBadges(user, allGames);
+    const wins = await Event.countDocuments({ 'winner.userId': user._id });
+
+    const topGenresMap = allGames.reduce((acc, g) => {
+      const key = (g.genre || 'Unknown').trim();
+      acc[key] = (acc[key] || 0) + 1;
+      return acc;
+    }, {});
+    const topGenres = Object.entries(topGenresMap)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([genre]) => genre);
+
+    res.json({
+      username: user.username,
+      name: user.name,
+      avatar: user.avatar,
+      bio: user.bio,
+      role: user.role,
+      level: user.level,
+      xp: user.xp,
+      badges: user.badges,
+      profileBanner: user.profileBanner || null,
+      avatarFrame: user.avatarFrame || null,
+      customSlug: user.customSlug || null,
+      stats: {
+        libraryCount: autoResult.trackedCount,
+        watchlistCount: autoResult.watchlistCount,
+        completedCount: autoResult.completedCount,
+        totalPlaytimeHrs: Math.floor(autoResult.playtimeMinutes / 60),
+        eventsWon: wins,
+        topGenres,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+const AVATAR_FRAMES = ['gold', 'neon', 'pixel'];
+
 exports.updateProfile = async (req, res) => {
   try {
-    const { name, bio, avatar, isPrivate, username } = req.body;
+    const { name, bio, avatar, isPrivate, username, profileBanner, avatarFrame, newsletterOptIn, customSlug } = req.body;
     const idToUpdate = req.params.id === 'me' ? req.user.id : req.params.id;
 
     if (idToUpdate !== req.user.id && req.user.role !== 'admin') {
@@ -223,6 +305,23 @@ exports.updateProfile = async (req, res) => {
     if (avatar !== undefined) user.avatar = String(avatar).trim();
     if (isPrivate !== undefined) user.isPrivate = Boolean(isPrivate);
 
+    // Cosmetics are premium-only - gated here, server-side, never trusting
+    // a frontend-only check (a non-premium request just silently no-ops).
+    const isPremium = user.subscriptionTier === 'premium';
+    if (profileBanner !== undefined && isPremium) {
+      user.profileBanner = String(profileBanner).trim() || null;
+    }
+    if (avatarFrame !== undefined && isPremium) {
+      user.avatarFrame = AVATAR_FRAMES.includes(avatarFrame) ? avatarFrame : null;
+    }
+
+    if (newsletterOptIn !== undefined) {
+      user.newsletterOptIn = Boolean(newsletterOptIn);
+      if (user.newsletterOptIn && !user.newsletterUnsubscribeToken) {
+        user.newsletterUnsubscribeToken = crypto.randomBytes(24).toString('hex');
+      }
+    }
+
     if (username !== undefined) {
       const normalizedUsername = String(username || '').trim().toLowerCase();
       if (normalizedUsername) {
@@ -234,6 +333,23 @@ exports.updateProfile = async (req, res) => {
       }
     }
 
+    if (customSlug !== undefined) {
+      const normalizedSlug = String(customSlug || '').trim().toLowerCase();
+      if (normalizedSlug) {
+        if (!/^[a-z0-9-]{3,30}$/.test(normalizedSlug)) {
+          return res.status(400).json({ message: 'Custom URL must be 3-30 characters: lowercase letters, numbers, and hyphens only.' });
+        }
+        const existing = await User.findOne({
+          _id: { $ne: idToUpdate },
+          $or: [{ customSlug: normalizedSlug }, { username: normalizedSlug }],
+        });
+        if (existing) return res.status(409).json({ message: 'That custom URL is already taken' });
+        user.customSlug = normalizedSlug;
+      } else {
+        user.customSlug = null;
+      }
+    }
+
     await user.save();
 
     const savedUser = await User.findById(idToUpdate).select('-password');
@@ -242,6 +358,24 @@ exports.updateProfile = async (req, res) => {
     if (error?.code === 11000 && error?.keyPattern?.username) {
       return res.status(409).json({ message: 'Username is already taken' });
     }
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Public, token-authenticated unsubscribe link - no login required, since
+// the recipient is reading this from an email, not an active session.
+exports.unsubscribeNewsletter = async (req, res) => {
+  try {
+    const token = String(req.query.token || '');
+    if (!token) return res.status(400).json({ message: 'Missing unsubscribe token' });
+
+    const user = await User.findOne({ newsletterUnsubscribeToken: token });
+    if (!user) return res.status(404).json({ message: 'Invalid or already-used unsubscribe link' });
+
+    user.newsletterOptIn = false;
+    await user.save();
+    res.json({ message: 'You have been unsubscribed from the weekly deals newsletter.' });
+  } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
@@ -315,9 +449,12 @@ exports.addOrUpdateUserGame = async (req, res) => {
     const user = await User.findById(req.user.id);
     if (user) {
       const allGames = await UserGame.find({ userId: req.user.id });
-      const { changed } = applyAutoBadges(user, allGames);
+      const { changed, newBadges } = applyAutoBadges(user, allGames);
       ensureAdminPrestige(user);
-      if (changed) await user.save();
+      if (changed) {
+        await user.save();
+        notifyNewBadges(req.user.id, newBadges);
+      }
     }
 
     res.json({ message: isNew ? 'Added to library' : 'Updated library entry', game: userGame });
@@ -362,7 +499,10 @@ exports.getDashboardStats = async (req, res) => {
     const allGames = await UserGame.find({ userId: req.user.id });
     const autoResult = applyAutoBadges(user, allGames);
     ensureAdminPrestige(user);
-    if (autoResult.changed) await user.save();
+    if (autoResult.changed) {
+      await user.save();
+      notifyNewBadges(req.user.id, autoResult.newBadges);
+    }
 
     const totalPlaytimeHrs = Math.floor(autoResult.playtimeMinutes / 60);
     const wins = await Event.countDocuments({ 'winner.userId': user._id });

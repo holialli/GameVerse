@@ -2,6 +2,7 @@ import React from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import styles from './Header.module.css'; // Import as CSS Module
 import ThemeToggle from '../ThemeToggle/ThemeToggle';
+import NotificationBell from '../NotificationBell/NotificationBell';
 import { useAuth } from '../../contexts/AuthContext';
 
 const Header = () => {
@@ -22,6 +23,7 @@ const Header = () => {
             <li><NavLink to="/games">Games</NavLink></li>
             <li><NavLink to="/news">News</NavLink></li>
             <li><NavLink to="/compatibility">Compatibility</NavLink></li>
+            <li><NavLink to="/leaderboard">Leaderboard</NavLink></li>
 
             {!isAdmin && <li><NavLink to="/discovery">Discover</NavLink></li>}
             {isAuthenticated && !isAdmin && <li><NavLink to="/events">Events</NavLink></li>}
@@ -34,6 +36,7 @@ const Header = () => {
           </ul>
         </nav>
         <div className={styles.controls}>
+          {isAuthenticated && <NotificationBell />}
           {isAuthenticated ? (
             <div className={styles.authBlock}>
               {user?.avatar && (

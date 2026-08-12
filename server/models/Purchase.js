@@ -34,4 +34,9 @@ const purchaseSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// Matches the actual query shape in purchaseController (buy/rent existence
+// checks query userId+gameId+type together; userId-only/isActive queries
+// still benefit from this as an index prefix).
+purchaseSchema.index({ userId: 1, gameId: 1, type: 1 });
+
 module.exports = mongoose.model('Purchase', purchaseSchema);

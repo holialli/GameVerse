@@ -31,6 +31,7 @@ export const gameAPI = {
   updateGame: (id, gameData) => { return Promise.resolve(); },
   deleteGame: (id) => fetch(`${API_BASE_URL}/games/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${getToken()}` } }).then(res => res.json()),
   getUserGames: () => fetch(`${API_BASE_URL}/games/user/my-games`, { headers: { Authorization: `Bearer ${getToken()}` } }).then(res => res.json()),
+  getSponsored: () => fetch(`${API_BASE_URL}/games/sponsored`).then(res => res.json()),
 };
 
 export const userAPI = {

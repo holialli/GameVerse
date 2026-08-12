@@ -1,11 +1,11 @@
 ﻿# GameVerse Platform
 ## Enterprise-Grade MERN Infrastructure and Security
 
-![Infrastructure](https://img.shields.io/badge/Infrastructure-Terraform-623CE4)
+![Infrastructure](https://img.shields.io/badge/Infrastructure-AWS_SSM_Deploy-623CE4)
 ![Cloud](https://img.shields.io/badge/Cloud-AWS-232F3E)
 ![Security](https://img.shields.io/badge/Security-Cloudflare_Strict_SSL-F38020)
 
-GameVerse is a high-performance gaming platform built on the MERN stack and deployed using modern DevSecOps methodologies. This repository focuses on infrastructure-as-code (IaC), network hardening, and automated security orchestration to maintain a production-ready environment.
+GameVerse is a high-performance gaming platform built on the MERN stack and deployed using modern DevSecOps methodologies. This repository focuses on a scripted, GitHub Actions-driven deployment pipeline (AWS SSM shell deploy, not Terraform/IaC), network hardening, and automated security orchestration to maintain a production-ready environment.
 
 ---
 
@@ -24,7 +24,7 @@ This section must be updated whenever a major feature, security behavior, or pla
 ### System Architecture and DevOps
 The deployment architecture utilizes a multi-layered defense strategy to ensure high availability and data integrity.
 
-* **Infrastructure as Code (IaC):** Environment provisioning is fully automated via Terraform to ensure reproducible, version-controlled AWS resources.
+* **Scripted Deployment:** GitHub Actions (`.github/workflows/devsecops.yml`) deploys via an AWS SSM shell script to EC2 - there is no Terraform/IaC layer in this repository today.
 * **Edge Security:** Integration with Cloudflare provides Web Application Firewall (WAF) capabilities and global DDoS mitigation.
 * **Encryption:** Implementation of Full (Strict) End-to-End SSL encryption utilizing Cloudflare Origin Certificates and Nginx SSL termination.
 * **Network Hardening:** AWS Security Groups follow a Zero-Trust model, restricting all inbound traffic exclusively to verified Cloudflare IPv4 ranges.
@@ -45,12 +45,12 @@ The CI/CD workflow, powered by GitHub Actions, incorporates rigorous security ga
 ### Technical Specification
 | Category | Component |
 | :--- | :--- |
-| **Frontend** | React.js, Context API, Tailwind CSS |
+| **Frontend** | React.js, Context API, CSS Modules |
 | **Backend** | Node.js, Express.js |
 | **Database** | MongoDB Atlas (Distributed Cloud Cluster) |
 | **Proxy / Web Server** | Nginx (Reverse Proxy with SSL Termination) |
 | **Infrastructure** | AWS (EC2, EIP, IAM, SSM, Security Groups) |
-| **Provisioning** | Terraform (HCL) |
+| **Provisioning** | Scripted GitHub Actions deploy via AWS SSM (no Terraform/IaC) |
 
 ---
 

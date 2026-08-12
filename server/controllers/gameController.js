@@ -1,4 +1,14 @@
 const Game = require('../models/Game');
+const HARDWARE_TIERS = require('../data/hardwareTierPresets');
+const { buildStoreLinks } = require('../utils/storeAffiliateLinks');
+const { getPricesForTitle } = require('../services/priceComparisonService');
+const { parseRequirements } = require('../services/requirementsParser');
+const GameRequirements = require('../models/GameRequirements');
+
+const CURRENT_PARSE_VERSION = 1;
+
+const tierCache = new Map();
+const TIER_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
 const RAWG_GENRE_SLUG_MAP = {
   action: 'action',
@@ -53,12 +63,33 @@ const normalizeRawgItem = (item, isFullDetail = false) => {
   const publishers = Array.isArray(item.publishers) ? item.publishers.map(p => p.name).join(', ') : null;
   const developers = Array.isArray(item.developers) ? item.developers.map(d => d.name).join(', ') : null;
   const owner = publishers || developers || 'Global Catalog';
-  
+  // Full detail RAWG responses include a real plain-text description
+  // (description_raw) - prefer it there; list/search responses don't have
+  // it, so fall back to a genre summary for those.
+  const genreSummary = item?.genres?.map((g) => g.name).join(', ') || 'No summary available yet.';
+  const description = (isFullDetail && item.description_raw) ? item.description_raw : genreSummary;
+
+  // Full-detail RAWG responses carry PC min/recommended specs per platform
+  // entry (requirements_en preferred - always English; requirements is
+  // locale-dependent on RAWG's side). List/search responses never include
+  // this, so it's only ever populated when isFullDetail is true.
+  let pcRequirements = null;
+  if (isFullDetail && Array.isArray(item.platforms)) {
+    const pcEntry = item.platforms.find((p) => p.platform?.slug === 'pc');
+    const reqs = pcEntry?.requirements_en || pcEntry?.requirements;
+    if (reqs && (reqs.minimum || reqs.recommended)) {
+      pcRequirements = {
+        minimum: reqs.minimum || null,
+        recommended: reqs.recommended || null,
+      };
+    }
+  }
+
   return {
     rawgId: item.id,
     rawgSlug: item.slug,
     title: item.name,
-    description: item?.genres?.map((g) => g.name).join(', ') || 'No summary available yet.',
+    description,
     coverUrl: item.background_image || null,
     genre: item?.genres?.[0]?.name || 'Unknown',
     rating: item.rating || null,
@@ -70,6 +101,7 @@ const normalizeRawgItem = (item, isFullDetail = false) => {
       : [],
     released: item.released || null,
     source: 'RAWG',
+    pcRequirements,
   };
 };
 
@@ -193,6 +225,157 @@ exports.searchInternetGames = async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ message: 'Failed to search internet games' });
+  }
+};
+
+// Get a single game's details by RAWG slug (or numeric RAWG id) - library
+// entries and search results are RAWG-sourced, not local Game catalog docs,
+// so this proxies RAWG directly rather than querying the local Game model.
+exports.getGameBySlug = async (req, res) => {
+  try {
+    const { rawgSlug } = req.params;
+    const rawgKey = process.env.RAWG_API_KEY;
+
+    if (!rawgKey) {
+      return res.status(503).json({ message: 'Live game catalog is temporarily unavailable.' });
+    }
+
+    const response = await fetch(`https://api.rawg.io/api/games/${encodeURIComponent(rawgSlug)}?key=${rawgKey}`);
+    if (!response.ok) {
+      return res.status(response.status === 404 ? 404 : 502).json({ message: 'Game not found' });
+    }
+
+    const data = await response.json();
+    const normalized = normalizeRawgItem(data, true);
+    normalized.storeLinks = buildStoreLinks({ title: normalized.title });
+    res.json(normalized);
+
+    // Fire-and-forget: cache structured requirements for the compatibility
+    // engine (Phase 3) - parsed once per game, never blocks this response.
+    if (normalized.pcRequirements) {
+      const parsed = parseRequirements(normalized.pcRequirements);
+      if (parsed) {
+        GameRequirements.findOneAndUpdate(
+          { rawgId: normalized.rawgId },
+          { $set: { ...parsed, parsedAt: new Date(), parseSource: 'regex', parseVersion: CURRENT_PARSE_VERSION } },
+          { upsert: true }
+        ).catch((err) => console.error('[GAMES] Failed to cache parsed requirements:', err.message));
+      }
+    }
+  } catch (error) {
+    console.error('[GAMES] getGameBySlug error:', error.message);
+    res.status(500).json({ message: 'Failed to fetch game details' });
+  }
+};
+
+// Suggested/similar games for a RAWG game slug (or id).
+exports.getSimilarGames = async (req, res) => {
+  try {
+    const { rawgSlug } = req.params;
+    const rawgKey = process.env.RAWG_API_KEY;
+
+    if (!rawgKey) {
+      return res.json({ results: [] });
+    }
+
+    const response = await fetch(`https://api.rawg.io/api/games/${encodeURIComponent(rawgSlug)}/suggested?key=${rawgKey}`);
+    if (!response.ok) {
+      return res.json({ results: [] });
+    }
+
+    const data = await response.json();
+    const results = Array.isArray(data.results) ? data.results.map((r) => normalizeRawgItem(r)) : [];
+    res.json({ results });
+  } catch (error) {
+    console.error('[GAMES] getSimilarGames error:', error.message);
+    res.json({ results: [] });
+  }
+};
+
+// Deliberately its own endpoint, not bundled into getGameBySlug's payload -
+// a slow/down price API should never block the core game-detail page render.
+exports.getPricesForGame = async (req, res) => {
+  try {
+    const { title } = req.query;
+    if (!title) return res.status(400).json({ message: 'title is required' });
+
+    const deals = await getPricesForTitle(title);
+    res.json({ deals });
+  } catch (error) {
+    res.json({ deals: [] });
+  }
+};
+
+// Curated "best games for [hardware tier]" landing page data. Titles are
+// resolved live against RAWG (not hardcoded slugs, which drift/rename) and
+// cached in-process for a day - mirrors the news aggregation caching pattern.
+exports.getGamesByTier = async (req, res) => {
+  try {
+    const tierKey = String(req.params.tier || '').toLowerCase();
+    const preset = HARDWARE_TIERS[tierKey];
+    if (!preset) {
+      return res.status(404).json({ message: 'Unknown hardware tier' });
+    }
+
+    const cached = tierCache.get(tierKey);
+    if (cached && cached.expiresAt > Date.now()) {
+      return res.json({ tier: tierKey, label: preset.label, description: preset.description, specBlurb: preset.specBlurb, games: cached.games });
+    }
+
+    const rawgKey = process.env.RAWG_API_KEY;
+    let games = [];
+
+    if (rawgKey) {
+      const results = await Promise.all(preset.titles.map(async (title) => {
+        try {
+          const params = new URLSearchParams({ search: title, page_size: '1', key: rawgKey });
+          const response = await fetch(`https://api.rawg.io/api/games?${params.toString()}`);
+          if (!response.ok) return null;
+          const data = await response.json();
+          const top = Array.isArray(data.results) ? data.results[0] : null;
+          return top ? normalizeRawgItem(top) : null;
+        } catch (err) {
+          return null;
+        }
+      }));
+      games = results.filter(Boolean);
+    }
+
+    tierCache.set(tierKey, { games, expiresAt: Date.now() + TIER_CACHE_TTL_MS });
+    res.json({ tier: tierKey, label: preset.label, description: preset.description, specBlurb: preset.specBlurb, games });
+  } catch (error) {
+    console.error('[GAMES] getGamesByTier error:', error.message);
+    res.status(500).json({ message: 'Failed to load tier games' });
+  }
+};
+
+// Currently-active sponsored catalog slots (public, no auth) - capped at 2
+// concurrent placements so this never turns into a full ad feed.
+exports.getSponsoredGames = async (req, res) => {
+  try {
+    const games = await Game.find({ isSponsored: true, sponsoredUntil: { $gt: new Date() } })
+      .sort('-updatedAt')
+      .limit(2)
+      .select('title description genre rating platform imageUrl developer sponsoredUrl')
+      .lean();
+
+    res.json({
+      games: games.map((g) => ({
+        id: g._id,
+        title: g.title,
+        description: g.description,
+        genre: g.genre,
+        rating: g.rating,
+        platforms: g.platform,
+        coverUrl: g.imageUrl,
+        owner: g.developer,
+        sponsoredUrl: g.sponsoredUrl,
+        isSponsored: true,
+        source: 'sponsored',
+      })),
+    });
+  } catch (error) {
+    res.json({ games: [] });
   }
 };
 

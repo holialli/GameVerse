@@ -4,6 +4,7 @@ const AuditLog = require('../models/AuditLog');
 const Video = require('../models/Video');
 const SiteConfig = require('../models/SiteConfig');
 const Event = require('../models/Event');
+const notify = require('../utils/notify');
 
 const sanitizeNote = (value) => String(value || '')
     .replace(/[<>]/g, '')
@@ -163,20 +164,6 @@ exports.getApprovedVideos = async (req, res) => {
     } catch (err) {
         res.status(500).json({ error: 'Failed to fetch approved videos' });
     }
-};
-
-exports.reviewVideo = async (req, res) => {
-   try {
-       const { id } = req.params;
-       const { status, reason } = req.body;
-
-       const auditAction = status === 'approved' ? 'VIDEO_APPROVED' : 'VIDEO_REJECTED';
-       await logAdminAction(req.user.id, auditAction, id, 'Video', reason);
-
-       res.json({ message: `Video ${status}` });
-   } catch (err) {
-       res.status(500).json({ error: 'Failed to review video' });
-   }
 };
 
 exports.getPendingFeedback = async (req, res) => {
@@ -489,6 +476,15 @@ exports.approveEventRequest = async (req, res) => {
         await event.save();
 
         await logAdminAction(req.user.id, 'EVENT_REQUEST_APPROVED', eventId, 'Event');
+        if (event.requestedBy) {
+            notify({
+                userId: event.requestedBy,
+                type: 'event_approved',
+                title: 'Tournament request approved',
+                message: `"${event.title}" is now live.`,
+                link: '/events',
+            });
+        }
         res.json({ message: 'Tournament request approved', event });
     } catch (err) {
         res.status(500).json({ error: 'Failed to approve tournament request' });
@@ -555,6 +551,13 @@ exports.approveJoinRequest = async (req, res) => {
 
         await event.save();
         await logAdminAction(req.user.id, 'EVENT_JOIN_REQUEST_APPROVED', eventId, 'Event', userId);
+        notify({
+            userId,
+            type: 'event_join_approved',
+            title: 'Event join request approved',
+            message: `You're in for "${event.title}".`,
+            link: '/events',
+        });
         res.json({ message: 'Join request approved' });
     } catch (err) {
         res.status(500).json({ error: 'Failed to approve join request' });

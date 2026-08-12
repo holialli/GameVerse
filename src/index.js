@@ -4,6 +4,10 @@ import App from './App';
 import './assets/base.css'; 
 import { BrowserRouter } from 'react-router-dom';
 
+if (!document.title || !document.title.trim()) {
+  document.title = 'GameVerse | Discover Games, News and Compatibility';
+}
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter>
