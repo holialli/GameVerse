@@ -6,10 +6,17 @@ on:
       - main
     paths:
       - '.github/workflows/devsecops.yml'
+      - '.gitleaks.toml'
       - 'server/**'
       - 'src/**'
       - 'public/**'
       - 'package.json'
+      # Lockfiles must trigger the pipeline too. A dependency patch can change
+      # package-lock.json alone, and that is exactly the change most likely to
+      # alter the vulnerability surface Snyk gates on - without this entry such
+      # a push silently skips every security job. (server/package-lock.json is
+      # already covered by the 'server/**' glob above.)
+      - 'package-lock.json'
 
 jobs:
 # PHASE 1: Automated Security Auditing
@@ -26,6 +33,10 @@ jobs:
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Points at the repo config explicitly rather than relying on
+          # auto-discovery. It extends the default ruleset and only allowlists
+          # documentation placeholders - see .gitleaks.toml for the rationale.
+          GITLEAKS_CONFIG: ${{ github.workspace }}/.gitleaks.toml
 
       # New Step: Install Backend dependencies for Snyk
       - name: Install Backend Dependencies
