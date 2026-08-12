@@ -4,7 +4,7 @@ import SEO from '../../components/SEO/SEO';
 import styles from './DevelopersDocs.module.css';
 
 const CURL_EXAMPLE = `curl -X POST https://game-verse.tech/api/v1/compatibility/check \\
-  -H "Authorization: Bearer YOUR_API_KEY" \\
+  -H "Authorization: Bearer $GAMEVERSE_API_KEY" \\
   -H "Content-Type: application/json" \\
   -d '{
     "rawgId": 3498,
