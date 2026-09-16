@@ -24,8 +24,10 @@ const applySecretValues = (secrets) => {
 const startServer = async () => {
   applyCommonDefaults();
 
-  const shouldLoadAwsSecrets = process.env.USE_AWS_SECRETS === 'true'
-    || process.env.NODE_ENV === 'production';
+  // Opt-in only. Production used to imply AWS Secrets Manager, but hosts like
+  // Render inject secrets as plain env vars - tying the lookup to NODE_ENV made
+  // any non-AWS production boot exit(1) on the failed fetch.
+  const shouldLoadAwsSecrets = process.env.USE_AWS_SECRETS === 'true';
 
   if (shouldLoadAwsSecrets) {
     try {
@@ -41,7 +43,7 @@ const startServer = async () => {
       process.exit(1);
     }
   } else {
-    console.log('⚠ Running in non-production mode. Secrets not loaded from AWS.');
+    console.log('Using secrets from the process environment (USE_AWS_SECRETS is not "true").');
     if (process.env.GEMINI_API_KEY) console.log('✓ GEMINI_API_KEY found in environment');
     if (process.env.RAWG_API_KEY) console.log('✓ RAWG_API_KEY found in environment');
   }

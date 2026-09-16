@@ -147,6 +147,24 @@ describe('auth: register -> login -> refresh', () => {
     expect(secondRefreshRes.body.refreshToken).not.toBe(refreshRes.body.refreshToken);
   });
 
+  it('accepts the refresh token from the body when the cross-site cookie is blocked', async () => {
+    const registerRes = await request(app).post('/api/auth/register').send(registerPayload);
+
+    // No cookie jar: simulates a browser that dropped the SameSite=None cookie.
+    const res = await request(app)
+      .post('/api/auth/refresh')
+      .send({ refreshToken: registerRes.body.refreshToken });
+    expect(res.status).toBe(200);
+    expect(res.body.refreshToken).not.toBe(registerRes.body.refreshToken);
+  });
+
+  it('ignores a non-string body token', async () => {
+    const res = await request(app)
+      .post('/api/auth/refresh')
+      .send({ refreshToken: { $ne: null } });
+    expect(res.status).toBe(401);
+  });
+
   it('rejects refresh when no refresh token cookie is present', async () => {
     const res = await request(app).post('/api/auth/refresh');
     expect(res.status).toBe(401);

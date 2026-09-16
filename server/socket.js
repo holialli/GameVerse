@@ -9,6 +9,7 @@ const redisClient = require('./utils/redisClient');
 const jwt = require('jsonwebtoken');
 const { moderateMessageAsync, syncFilter } = require('./services/moderationService');
 const LobbyMessage = require('./models/LobbyMessage');
+const { getAllowedOrigins } = require('./config/allowedOrigins');
 
 const resolveJwtSecret = () => {
   return process.env.JWT_ACCESS_SECRET || process.env.JWT_SECRET || process.env.JWT_REFRESH_SECRET || null;
@@ -29,11 +30,7 @@ let io;
 exports.initSocket = (server) => {
   io = new Server(server, {
     cors: {
-      origin: [
-        'https://game-verse.tech',
-        'http://localhost:3000',
-        process.env.CLIENT_URL,
-      ].filter(Boolean),
+      origin: getAllowedOrigins(),
       credentials: true,
     }
   });

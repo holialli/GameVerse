@@ -28,20 +28,23 @@ const generateTokens = (userId, role = 'user') => {
   return { accessToken, refreshToken };
 };
 
+// In production the frontend (Vercel) and API (Render) live on different
+// sites, so a Strict/Lax cookie is never sent on the API calls. SameSite=None
+// requires Secure. Browsers that block third-party cookies still drop these,
+// which is why refresh also accepts the token from the request body.
+const cookieOptions = (maxAge) => {
+  const isProduction = process.env.NODE_ENV === 'production';
+  return {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? 'None' : 'Lax',
+    maxAge,
+  };
+};
+
 const setTokenCookies = (res, accessToken, refreshToken) => {
-  res.cookie('accessToken', accessToken, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'Strict',
-    maxAge: 15 * 60 * 1000, 
-  });
-  
-  res.cookie('refreshToken', refreshToken, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'Strict',
-    maxAge: 7 * 24 * 60 * 60 * 1000, 
-  });
+  res.cookie('accessToken', accessToken, cookieOptions(15 * 60 * 1000));
+  res.cookie('refreshToken', refreshToken, cookieOptions(7 * 24 * 60 * 60 * 1000));
 };
 
 // Reverse lookup: the opaque refresh token itself is the Redis key, mapping
@@ -174,7 +177,10 @@ exports.login = async (req, res) => {
 // Refresh token & Rotation logic
 exports.refreshToken = async (req, res) => {
   try {
-    const oldRefreshToken = req.cookies.refreshToken;
+    // Cookie first; fall back to the body copy the frontend keeps in
+    // localStorage, for browsers that refuse the cross-site cookie.
+    const bodyToken = typeof req.body?.refreshToken === 'string' ? req.body.refreshToken : null;
+    const oldRefreshToken = req.cookies?.refreshToken || bodyToken;
 
     if (!oldRefreshToken) {
       return res.status(401).json({ message: 'No refresh token provided' });

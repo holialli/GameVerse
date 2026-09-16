@@ -1,16 +1,23 @@
 ﻿# GameVerse Platform
 ## Enterprise-Grade MERN Infrastructure and Security
 
-![Infrastructure](https://img.shields.io/badge/Infrastructure-AWS_SSM_Deploy-623CE4)
-![Cloud](https://img.shields.io/badge/Cloud-AWS-232F3E)
-![Security](https://img.shields.io/badge/Security-Cloudflare_Strict_SSL-F38020)
+![Frontend](https://img.shields.io/badge/Frontend-Vercel-000000)
+![Backend](https://img.shields.io/badge/Backend-Render-46E3B7)
+![Pipeline](https://img.shields.io/badge/CI-GitHub_Actions_DevSecOps-2088FF)
 
-GameVerse is a high-performance gaming platform built on the MERN stack and deployed using modern DevSecOps methodologies. This repository focuses on a scripted, GitHub Actions-driven deployment pipeline (AWS SSM shell deploy, not Terraform/IaC), network hardening, and automated security orchestration to maintain a production-ready environment.
+GameVerse is a gaming platform built on the MERN stack and deployed through a DevSecOps pipeline. The React frontend is hosted on Vercel and the Express API on Render. GitHub Actions gates every backend deploy behind secret, dependency and container scanning (a scripted pipeline, not Terraform/IaC). From March to September 2026 the whole stack ran on a single AWS EC2 instance behind Cloudflare and Nginx.
 
 ---
 
 ### Major Updates
 This section must be updated whenever a major feature, security behavior, or platform workflow changes.
+
+#### 2026-09-17
+* **Hosting Migration (AWS → Render + Vercel):** The AWS free plan ended, so the API moved to a free Render web service (Docker, Singapore) and the frontend to Vercel. MongoDB Atlas and Upstash Redis are unchanged.
+* **Opt-in AWS Secrets:** The server loads AWS Secrets Manager only when `USE_AWS_SECRETS=true`. Otherwise it reads secrets from the host's environment variables.
+* **Cross-Site Auth:** Auth cookies are `Secure; SameSite=None` in production, and `/api/auth/refresh` also accepts the refresh token in the request body for browsers that block third-party cookies. `CLIENT_URL` accepts a comma-separated list of origins for both CORS and Socket.IO.
+* **Cold-Start UX:** The free API sleeps after 15 idle minutes. `ServerWakeNotice` pings `/api/health` as soon as a visitor lands and shows a "Starting the server…" notice while the API wakes (~30–60 s).
+* **Scan-Gated Deploys:** Render auto-deploy is off. The pipeline triggers Render's deploy hook for the exact scanned commit, then waits until `/api/health` reports that commit before running the ZAP scan.
 
 #### 2026-03-29
 * **Auth Secret Fallback:** Authentication and token verification now resolve JWT secrets from `JWT_ACCESS_SECRET`, `JWT_SECRET`, or `JWT_REFRESH_SECRET` to reduce environment mismatch failures.
@@ -22,13 +29,13 @@ This section must be updated whenever a major feature, security behavior, or pla
 ---
 
 ### System Architecture and DevOps
-The deployment architecture utilizes a multi-layered defense strategy to ensure high availability and data integrity.
+The platform runs entirely on free-tier managed services.
 
-* **Scripted Deployment:** GitHub Actions (`.github/workflows/devsecops.yml`) deploys via an AWS SSM shell script to EC2 - there is no Terraform/IaC layer in this repository today.
-* **Edge Security:** Integration with Cloudflare provides Web Application Firewall (WAF) capabilities and global DDoS mitigation.
-* **Encryption:** Implementation of Full (Strict) End-to-End SSL encryption utilizing Cloudflare Origin Certificates and Nginx SSL termination.
-* **Network Hardening:** AWS Security Groups follow a Zero-Trust model, restricting all inbound traffic exclusively to verified Cloudflare IPv4 ranges.
-* **Zero-Key Management:** Administrative access is conducted through AWS Systems Manager (SSM) Session Manager, eliminating the need for static SSH keys and reducing the identity attack surface.
+* **Frontend Hosting:** Vercel builds the React app from `main`. `vercel.json` rewrites client-side routes to `index.html`.
+* **Backend Hosting:** A Render web service built from `server/dockerfile`, with TLS at Render's edge. Free instances sleep when idle, and the UI handles the cold start with a wake-up ping and a status notice.
+* **Data:** MongoDB Atlas, plus Upstash Redis for refresh tokens, shadowbans and the Socket.IO adapter.
+* **Scripted Deployment:** GitHub Actions (`.github/workflows/devsecops.yml`) triggers Render's deploy hook after all security gates pass. There is no Terraform/IaC layer. `render.yaml` documents the service settings.
+* **Previous Setup (Mar–Sep 2026):** AWS EC2 behind Cloudflare (WAF, DDoS protection, Full Strict SSL with origin certificates) and Nginx. Deploys ran through AWS SSM, with no static SSH keys, and the security group only accepted Cloudflare IP ranges. `server/config/nginx.conf` is kept for reference.
 
 ---
 
@@ -38,7 +45,7 @@ The CI/CD workflow, powered by GitHub Actions, incorporates rigorous security ga
 * **Static Analysis (SAST):** Gitleaks integration to identify and block credential leakage within the repository history.
 * **Software Composition Analysis (SCA):** Snyk automated scanning to detect and remediate vulnerabilities in NPM dependencies (CVEs).
 * **Container Security:** Trivy scans performed on Docker images to identify OS-level vulnerabilities during the build phase.
-* **Automated Deployment:** Verified code is deployed to the production environment only after successfully passing all security and build stages.
+* **Automated Deployment:** Code reaches production only after passing every security and build stage. The workflow deploys the exact scanned commit to Render, confirms it is live through `/api/health`, then runs an OWASP ZAP baseline scan.
 
 ---
 
@@ -47,18 +54,19 @@ The CI/CD workflow, powered by GitHub Actions, incorporates rigorous security ga
 | :--- | :--- |
 | **Frontend** | React.js, Context API, CSS Modules |
 | **Backend** | Node.js, Express.js |
-| **Database** | MongoDB Atlas (Distributed Cloud Cluster) |
-| **Proxy / Web Server** | Nginx (Reverse Proxy with SSL Termination) |
-| **Infrastructure** | AWS (EC2, EIP, IAM, SSM, Security Groups) |
-| **Provisioning** | Scripted GitHub Actions deploy via AWS SSM (no Terraform/IaC) |
+| **Database** | MongoDB Atlas (Distributed Cloud Cluster), Upstash Redis |
+| **Realtime** | Socket.IO with Redis adapter |
+| **Hosting** | Vercel (frontend), Render (API, Docker) |
+| **Provisioning** | GitHub Actions + Render deploy hook (no Terraform/IaC) |
+| **Previously** | AWS EC2 + Nginx + Cloudflare, deployed via AWS SSM |
 
 ---
 
 ### Core Security Implementation
-* **JWT Lifecycle Management:** Secure, HTTP-only cookie-based token rotation for robust session persistence.
+* **JWT Lifecycle Management:** Refresh-token rotation backed by Redis, using HTTP-only cookies (`Secure; SameSite=None` for the cross-site frontend/API setup) with replay rejection.
 * **Layer 7 Protection:** Express-based rate limiting and request validation middleware to mitigate automated threats and brute-force attempts.
-* **Identity and Access Management (IAM):** Utilization of IAM Instance Profiles following the Principle of Least Privilege (PoLP).
-* **Secret Isolation:** Separation of production secrets using GitHub Actions Secrets and encrypted server-side environment configurations.
+* **Origin Allow-listing:** A single CORS allowlist shared by the REST API and Socket.IO.
+* **Secret Isolation:** Production secrets live in the hosting provider's environment configuration and in GitHub Actions secrets. Nothing is baked into images. AWS Secrets Manager remains available as an opt-in loader.
 
 ---
 

@@ -1,0 +1,131 @@
+/* Bottom-left so it clears the toaster (top-right) and the chat box
+   (bottom-right). */
+.region {
+  position: fixed;
+  left: 20px;
+  bottom: 20px;
+  z-index: 9000;
+  max-width: min(360px, calc(100% - 40px));
+}
+
+.notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--bg-elev);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--primary);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow);
+  animation: slideIn 0.25s ease-out;
+}
+
+.ready { border-left-color: var(--success); }
+.failed { border-left-color: var(--danger); }
+
+.body { flex: 1; min-width: 0; }
+
+.title {
+  margin: 0;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.elapsed {
+  margin-left: 8px;
+  font-weight: 400;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.detail {
+  margin: 4px 0 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.spinner {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  border: 2px solid var(--border);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.icon {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  margin-top: 1px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--bg-elev);
+  background: var(--success);
+}
+
+.failed .icon { background: var(--danger); }
+
+.retry {
+  margin-top: 8px;
+  padding: 4px 12px;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--on-primary);
+  background: var(--primary);
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.retry:hover { background: var(--primary-700); }
+
+.close {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  margin: -4px -6px 0 0;
+  padding: 0;
+  font-size: 1.25rem;
+  line-height: 1;
+  color: var(--muted);
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.close:hover { color: var(--text); }
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 480px) {
+  .region {
+    left: 16px;
+    right: 16px;
+    bottom: 16px;
+    max-width: none;
+  }
+}
+
+/* The spinner slows instead of stopping, so it still reads as "working". */
+@media (prefers-reduced-motion: reduce) {
+  .notice { animation: none; }
+  .spinner { animation-duration: 2.4s; }
+}

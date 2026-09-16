@@ -5,6 +5,7 @@ const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 const cookieParser = require('cookie-parser');
 const morgan = require('morgan');
+const { getAllowedOrigins } = require('./config/allowedOrigins');
 
 const app = express();
 
@@ -31,11 +32,7 @@ app.use(helmet({
 app.use(mongoSanitize());
 
 // CORS configuration
-const allowedOrigins = [
-  'http://localhost:3000',
-  'https://game-verse.tech',
-  process.env.CLIENT_URL,
-].filter(Boolean);
+const allowedOrigins = getAllowedOrigins();
 
 app.use(
   cors({
@@ -95,6 +92,8 @@ app.get('/api/health', (req, res) => {
     message: 'Server is running',
     environment: process.env.NODE_ENV,
     apiKeysLoaded,
+    // Set by Render; lets the CI pipeline tell when its commit is live.
+    commit: process.env.RENDER_GIT_COMMIT || null,
     timestamp: new Date().toISOString(),
   });
 });

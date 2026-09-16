@@ -1,0 +1,51 @@
+# Render Blueprint for the GameVerse API (the frontend is deployed on Vercel).
+#
+# Render only syncs Blueprints for workspaces with payment info on file
+# (`render blueprints validate` returns need_payment_info otherwise). Without
+# a card, create the service by hand (New -> Web Service) and copy the
+# settings below - this file is the source of truth for them. With a card:
+# New -> Blueprint -> pick this repo. `sync: false` values are prompted for
+# and never stored in git.
+#
+# Free plan: the service sleeps after 15 idle minutes and takes up to ~1 minute
+# to wake. Do NOT add an uptime pinger - the workspace's 750 free hours are
+# already spent keeping the Assistant-AI bot awake. The frontend's
+# ServerWakeNotice handles the cold start instead.
+services:
+  - type: web
+    name: gameverse-api
+    runtime: docker
+    plan: free
+    region: singapore
+    dockerfilePath: ./server/dockerfile
+    dockerContext: ./server
+    healthCheckPath: /api/health
+    # Deploys are triggered by the GitHub Actions pipeline (deploy hook) only
+    # after the security scans pass, so pushes don't deploy on their own.
+    autoDeployTrigger: "off"
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: USE_AWS_SECRETS
+        value: "false"
+      # Comma-separated browser origins, e.g. https://gameverse.vercel.app
+      - key: CLIENT_URL
+        sync: false
+      - key: MONGODB_URI
+        sync: false
+      # Upstash Redis URL (rediss://...). Needed for refresh tokens,
+      # shadowbans and the Socket.IO adapter.
+      - key: REDIS_URL
+        sync: false
+      - key: JWT_ACCESS_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: RAWG_API_KEY
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
