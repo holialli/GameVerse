@@ -7,6 +7,7 @@
     "CI": "false"
   },
   "rewrites": [
+    { "source": "/sitemap.xml", "destination": "https://gameverse-1yse.onrender.com/sitemap.xml" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
