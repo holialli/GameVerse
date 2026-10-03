@@ -62,6 +62,10 @@ const limiter = rateLimit({
   max: Number(process.env.RATE_LIMIT_MAX_REQUESTS) || 100,
   standardHeaders: true,
   legacyHeaders: false,
+  // Render's health checker polls /api/health every few seconds from a single
+  // address, which exhausts the per-IP budget; a 429 there marks the instance
+  // unhealthy. The CI deploy job and ServerWakeNotice poll it too.
+  skip: (req) => req.path === '/health',
   handler: (req, res) => {
     res.status(429).json({
       status: 'error',
