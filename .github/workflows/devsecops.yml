@@ -158,7 +158,7 @@ jobs:
 
       - name: ZAP Baseline Scan
         if: steps.trigger.outputs.deployed == 'true'
-        uses: zaproxy/action-baseline@v0.12.0
+        uses: zaproxy/action-baseline@v0.15.0
         with:
             target: ${{ vars.PRODUCTION_SITE_URL || vars.PRODUCTION_API_URL }}
             # The default GITHUB_TOKEN can't create issues, and filing scan
