@@ -161,3 +161,7 @@ jobs:
         uses: zaproxy/action-baseline@v0.12.0
         with:
             target: ${{ vars.PRODUCTION_SITE_URL || vars.PRODUCTION_API_URL }}
+            # The default GITHUB_TOKEN can't create issues, and filing scan
+            # findings as issues on a public repo isn't wanted anyway. The
+            # report is still uploaded as the run's zap_scan artifact.
+            allow_issue_writing: false
