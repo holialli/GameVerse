@@ -3,10 +3,6 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
-    "@testing-library/dom": "^10.4.1",
-    "@testing-library/jest-dom": "^6.9.1",
-    "@testing-library/react": "^16.3.0",
-    "@testing-library/user-event": "^13.5.0",
     "@vercel/analytics": "^1.6.1",
     "axios": "^1.15.0",
     "react": "^19.2.0",
@@ -14,7 +10,6 @@
     "react-helmet-async": "^3.0.0",
     "react-hot-toast": "^2.6.0",
     "react-router-dom": "^7.9.6",
-    "react-scripts": "5.0.1",
     "socket.io-client": "^4.8.3",
     "web-vitals": "^2.1.4"
   },
@@ -28,7 +23,12 @@
     "eject": "react-scripts eject"
   },
   "devDependencies": {
-    "cross-env": "^7.0.3"
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^13.5.0",
+    "cross-env": "^7.0.3",
+    "react-scripts": "5.0.1"
   },
   "eslintConfig": {
     "extends": [
@@ -52,6 +52,7 @@
     "nth-check": "2.0.1",
     "postcss": "8.4.31",
     "serialize-javascript": "6.0.2",
-    "node-forge": "1.4.0"
+    "node-forge": "1.4.0",
+    "shell-quote": "1.11.0"
   }
 }
