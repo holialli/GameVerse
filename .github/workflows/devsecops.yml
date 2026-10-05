@@ -92,6 +92,17 @@ jobs:
           format: 'table'
           severity: 'CRITICAL,HIGH'
 
+      # The scan above only reports. This step is the gate: it fails the job,
+      # before the image is pushed, on any CRITICAL CVE that has a fix available.
+      - name: Trivy Gate (Backend Image, fixable CRITICAL)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: '${{ secrets.DOCKERHUB_USERNAME }}/gameverse-backend:latest'
+          format: 'table'
+          severity: 'CRITICAL'
+          ignore-unfixed: true
+          exit-code: '1'
+
       - name: Push Backend to Registry
         run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/gameverse-backend:latest
 
@@ -105,6 +116,17 @@ jobs:
           image-ref: '${{ secrets.DOCKERHUB_USERNAME }}/gameverse-frontend:latest'
           format: 'table'
           severity: 'CRITICAL,HIGH'
+
+      # The scan above only reports. This step is the gate: it fails the job,
+      # before the image is pushed, on any CRITICAL CVE that has a fix available.
+      - name: Trivy Gate (Frontend Image, fixable CRITICAL)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: '${{ secrets.DOCKERHUB_USERNAME }}/gameverse-frontend:latest'
+          format: 'table'
+          severity: 'CRITICAL'
+          ignore-unfixed: true
+          exit-code: '1'
 
       - name: Push Frontend to Registry
         run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/gameverse-frontend:latest
