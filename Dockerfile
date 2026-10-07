@@ -11,7 +11,9 @@ RUN npm run build
 
 FROM node:20-alpine
 WORKDIR /app
-RUN npm install -g serve
+# Remove npm once serve is installed, for the same reason as in server/dockerfile.
+RUN npm install -g serve \
+    && rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx /root/.npm
 
 COPY --from=build /app/build ./build
 EXPOSE 3000
